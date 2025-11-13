@@ -1,6 +1,6 @@
 const cloudinary = require('../config/cloudinary');
 const documentRepository = require('../repositories/documentRepository');
-const { parseFile, chunkText } = require('../services/fileParsingService');
+const { parseFile, chunkText } = require('../services/fileparsingService');
 const { storeChunksWithEmbeddings } = require('../services/embeddingService');
 const { detectLanguage } = require('../services/languageService');
 const { getFileExtension } = require('../middlewares/upload');
