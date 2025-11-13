@@ -5,7 +5,7 @@ const { createClient } = require('@supabase/supabase-js');
 // Use only environment variables — no hard-coded fallbacks
 const supabaseUrl = "https://hjwzxypjecuogxgjagrh.supabase.co"
 
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhqd3p4eXBqZWN1b2d4Z2phZ3JoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTU4NTUwNiwiZXhwIjoyMDcxMTYxNTA2fQ.J36ZUMmR9mADWfrntxuPLYDWXDIfeJ6vafFIULGniGA";
 
 if (!supabaseUrl || !supabaseKey) {
   console.error("❌ Missing Supabase environment variables. Check your .env file!");

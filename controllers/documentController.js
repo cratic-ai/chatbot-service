@@ -79,26 +79,40 @@ exports.uploadDocument = async (req, res) => {
 /**
  * Process document asynchronously (background job)
  */
-const processDocumentAsync = async (documentId, buffer, mimeType, fileType) => {
+
+
+
+ const processDocumentAsync = async (documentId, buffer, mimeType, fileType) => {
   try {
-    console.log(`Starting async processing for document ${documentId}`);
+    console.log(`🚀 Starting async processing for document ${documentId}`);
+    console.log(`📄 File type: ${fileType}, MIME: ${mimeType}`);
 
     // Update status to processing
     await documentRepository.updateProcessingStatus(documentId, 'processing');
 
     // Parse file
-    console.log('Parsing file...');
+    console.log('📖 Parsing file...');
     const { text, pages, totalPages } = await parseFile(buffer, mimeType, fileType);
 
-    console.log(`File parsed: ${totalPages} pages, ${text.length} characters`);
+    if (!pages || pages.length === 0) {
+      throw new Error('No pages extracted from document');
+    }
+
+    console.log(`✅ File parsed: ${totalPages} pages, ${text.length} characters`);
 
     // Detect language
     const language = detectLanguage(text);
-    console.log('Detected language:', language);
+    console.log('🌍 Detected language:', language);
 
     // Create chunks from pages
+    console.log('✂️ Creating chunks...');
     const allChunks = [];
     for (const page of pages) {
+      if (!page.text || page.text.trim().length === 0) {
+        console.warn(`⚠️ Skipping empty page ${page.pageNumber}`);
+        continue;
+      }
+
       const pageChunks = chunkText(page.text, 800, 100);
 
       pageChunks.forEach(chunkText => {
@@ -110,10 +124,19 @@ const processDocumentAsync = async (documentId, buffer, mimeType, fileType) => {
       });
     }
 
-    console.log(`Created ${allChunks.length} chunks`);
+    if (allChunks.length === 0) {
+      throw new Error('No valid chunks created from document');
+    }
+
+    console.log(`✅ Created ${allChunks.length} chunks`);
 
     // Store chunks with embeddings
+    console.log('🔮 Generating embeddings and storing chunks...');
     const chunkCount = await storeChunksWithEmbeddings(documentId, allChunks);
+
+    if (chunkCount === 0) {
+      throw new Error('Failed to store any chunks');
+    }
 
     // Update document status
     await documentRepository.updateDocument(documentId, {
@@ -122,12 +145,14 @@ const processDocumentAsync = async (documentId, buffer, mimeType, fileType) => {
       processed_at: new Date().toISOString()
     });
 
-    console.log(`✅ Document ${documentId} processed successfully! ${chunkCount} chunks stored.`);
+    console.log(`✅✅ Document ${documentId} processed successfully! ${chunkCount} chunks stored.`);
 
   } catch (error) {
-    console.error(`❌ Processing failed for document ${documentId}:`, error.message);
+    console.error(`❌❌ Processing failed for document ${documentId}:`);
+    console.error('Error message:', error.message);
+    console.error('Stack trace:', error.stack);
 
-    // Update status to failed
+    // Update status to failed with detailed error
     await documentRepository.updateProcessingStatus(
       documentId,
       'failed',
@@ -135,6 +160,7 @@ const processDocumentAsync = async (documentId, buffer, mimeType, fileType) => {
     );
   }
 };
+
 
 /**
  * Get all documents for current user

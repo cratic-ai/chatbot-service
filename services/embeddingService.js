@@ -6,22 +6,70 @@ const { supabase } = require('../config/supabase');
  * @param {string} text - Text to embed
  * @returns {Promise<array>} - Embedding vector (1536 dimensions for text-embedding-3-small)
  */
-const generateEmbedding = async (text) => {
+
+
+/**
+ * Generate embedding using Azure OpenAI text-embedding-3-small
+ * @param {string} text - Text to embed
+ * @returns {Promise<array>} - Embedding vector (1536 dimensions)
+ */
+const generateEmbedding = async (text, retries = 3) => {
   try {
     if (!text || text.trim().length === 0) {
       throw new Error('Text cannot be empty');
     }
 
-    const deploymentName = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME || "text-embedding-3-small";
+    // Truncate if too long
+    const maxLength = 8000;
+    const truncatedText = text.length > maxLength
+      ? text.substring(0, maxLength)
+      : text.trim();
 
-    const embeddings = await azureOpenAI.getEmbeddings(
-      deploymentName,
-      [text.trim()]
-    );
+    console.log(`🔮 Generating embedding for text (${truncatedText.length} chars)...`);
 
-    return embeddings.data[0].embedding;
+    // ✅ FIX: Use embeddings.create() instead of getEmbeddings()
+    // Create a separate client for embeddings
+    const OpenAI = require('openai');
+    const embeddingClient = new OpenAI({
+      apiKey: process.env.AZURE_OPENAI_API_KEY,
+      baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME}`,
+      defaultHeaders: {
+        "api-key": process.env.AZURE_OPENAI_API_KEY,
+      },
+      defaultQuery: {
+        "api-version": "2025-01-01-preview",
+      },
+    });
+
+    const response = await embeddingClient.embeddings.create({
+      input: [truncatedText],
+      model: process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME
+    });
+
+    if (!response || !response.data || !response.data[0] || !response.data[0].embedding) {
+      console.error('Invalid response:', response);
+      throw new Error('Invalid embedding response from Azure');
+    }
+
+    const embedding = response.data[0].embedding;
+
+    if (!Array.isArray(embedding) || embedding.length === 0) {
+      throw new Error(`Invalid embedding: expected array, got ${typeof embedding}`);
+    }
+
+    console.log(`✅ Generated embedding: ${embedding.length} dimensions`);
+    return embedding;
+
   } catch (error) {
-    console.error('Azure OpenAI embedding error:', error.message);
+    // Handle rate limiting
+    if ((error.status === 429 || error.code === 'rate_limit_exceeded') && retries > 0) {
+      const delay = (4 - retries) * 2000;
+      console.log(`⚠️ Rate limited, waiting ${delay}ms... (${retries} retries left)`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return generateEmbedding(text, retries - 1);
+    }
+
+    console.error('❌ Azure OpenAI embedding error:', error.message);
     throw new Error(`Failed to generate embedding: ${error.message}`);
   }
 };
@@ -32,53 +80,84 @@ const generateEmbedding = async (text) => {
  * @param {array} chunks - Array of {text, pageNumber, language}
  * @returns {Promise<number>} - Number of chunks stored
  */
+
+
+
+
 const storeChunksWithEmbeddings = async (documentId, chunks) => {
   try {
-    console.log(`Storing ${chunks.length} chunks for document ${documentId}...`);
+    console.log(`📦 Storing ${chunks.length} chunks for document ${documentId}...`);
+
+    if (!chunks || chunks.length === 0) {
+      throw new Error('No chunks to process');
+    }
 
     const chunksWithEmbeddings = [];
     let processedCount = 0;
 
-    // Process in batches to avoid rate limits
-    const batchSize = 10;
+    // Process in smaller batches to avoid rate limits
+    const batchSize = 5; // Reduced from 10
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
 
+      console.log(`🔄 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(chunks.length / batchSize)}`);
+
       const batchPromises = batch.map(async (chunk, batchIndex) => {
         try {
-          const embedding = await generateEmbedding(chunk.text);
-
-          processedCount++;
-          if (processedCount % 10 === 0) {
-            console.log(`Processed ${processedCount}/${chunks.length} embeddings`);
+          // Validate chunk text
+          if (!chunk.text || chunk.text.trim().length === 0) {
+            console.warn(`⚠️ Skipping empty chunk at index ${i + batchIndex}`);
+            return null;
           }
 
+          // Generate embedding
+          const embedding = await generateEmbedding(chunk.text);
+
+          // Validate embedding
+          if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
+            console.error(`❌ Invalid embedding generated for chunk ${i + batchIndex}`);
+            return null;
+          }
+
+          processedCount++;
+          if (processedCount % 5 === 0) {
+            console.log(`✅ Processed ${processedCount}/${chunks.length} embeddings`);
+          }
+
+          // ✅ IMPORTANT: Store as array, not JSON string for pgvector
           return {
             document_id: documentId,
-            text: chunk.text,
+            text: chunk.text.substring(0, 5000), // Limit text length
             page_number: chunk.pageNumber,
             chunk_index: i + batchIndex,
-            embedding: JSON.stringify(embedding),
+            embedding: embedding, // Store as array directly
             language: chunk.language || 'en'
           };
         } catch (error) {
-          console.error(`Error generating embedding for chunk ${i + batchIndex}:`, error.message);
+          console.error(`❌ Error generating embedding for chunk ${i + batchIndex}:`, error.message);
           return null;
         }
       });
 
       const batchResults = await Promise.all(batchPromises);
-      chunksWithEmbeddings.push(...batchResults.filter(r => r !== null));
+      const validResults = batchResults.filter(r => r !== null);
 
-      // Small delay between batches
+      if (validResults.length > 0) {
+        chunksWithEmbeddings.push(...validResults);
+      }
+
+      // Longer delay between batches to avoid rate limits
       if (i + batchSize < chunks.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('⏳ Waiting 1 second before next batch...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
     if (chunksWithEmbeddings.length === 0) {
-      throw new Error('Failed to generate any embeddings');
+      throw new Error('❌ Failed to generate any valid embeddings');
     }
+
+    console.log(`💾 Inserting ${chunksWithEmbeddings.length} chunks into database...`);
 
     // Insert chunks into Supabase
     const { data, error } = await supabase
@@ -86,15 +165,16 @@ const storeChunksWithEmbeddings = async (documentId, chunks) => {
       .insert(chunksWithEmbeddings);
 
     if (error) {
-      console.error('Supabase insert error:', error);
+      console.error('❌ Supabase insert error:', error);
       throw error;
     }
 
-    console.log(`✅ Stored ${chunksWithEmbeddings.length} chunks with embeddings`);
+    console.log(`✅ Successfully stored ${chunksWithEmbeddings.length} chunks with embeddings`);
     return chunksWithEmbeddings.length;
 
   } catch (error) {
-    console.error('Error storing chunks:', error.message);
+    console.error('❌ Error storing chunks:', error.message);
+    console.error('Stack trace:', error.stack);
     throw error;
   }
 };
@@ -106,33 +186,33 @@ const storeChunksWithEmbeddings = async (documentId, chunks) => {
  * @param {number} topK - Number of top results to return
  * @returns {Promise<array>} - Array of similar chunks with similarity scores
  */
+
 const searchSimilarChunks = async (query, documentIds, topK = 5) => {
   try {
-    console.log(`Searching for similar chunks in ${documentIds.length} documents...`);
+    console.log(`🔍 Searching for similar chunks in ${documentIds.length} documents...`);
 
-    // Generate embedding for query using Azure OpenAI
+    // Generate embedding for query
     const queryEmbedding = await generateEmbedding(query);
 
-    // Use Supabase RPC function for vector search
+    // ✅ Pass embedding as array, not stringified
     const { data, error } = await supabase.rpc('search_similar_chunks', {
-      query_embedding: JSON.stringify(queryEmbedding),
+      query_embedding: queryEmbedding, // Pass as array directly
       document_ids: documentIds,
       result_limit: topK
     });
 
     if (error) {
-      console.error('Vector search error:', error);
+      console.error('❌ Vector search error:', error);
       throw error;
     }
 
     if (!data || data.length === 0) {
-      console.log('No similar chunks found');
+      console.log('⚠️ No similar chunks found');
       return [];
     }
 
-    console.log(`Found ${data.length} similar chunks`);
+    console.log(`✅ Found ${data.length} similar chunks`);
 
-    // Format results
     return data.map(chunk => ({
       chunkId: chunk.chunk_id,
       documentId: chunk.document_id,
@@ -143,11 +223,10 @@ const searchSimilarChunks = async (query, documentIds, topK = 5) => {
     }));
 
   } catch (error) {
-    console.error('Error searching similar chunks:', error.message);
+    console.error('❌ Error searching similar chunks:', error.message);
     throw error;
   }
 };
-
 /**
  * Alternative: Manual cosine similarity search (if RPC function not available)
  * @param {string} query - Search query
