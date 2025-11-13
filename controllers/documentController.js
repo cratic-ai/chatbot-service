@@ -86,6 +86,9 @@ exports.uploadDocument = async (req, res) => {
   try {
     console.log(`🚀 Starting async processing for document ${documentId}`);
     console.log(`📄 File type: ${fileType}, MIME: ${mimeType}`);
+       console.log(`🚀 [${new Date().toISOString()}] Starting processing for document ${documentId}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📍 Azure Endpoint: ${process.env.AZURE_OPENAI_ENDPOINT}`);
 
     // Update status to processing
     await documentRepository.updateProcessingStatus(documentId, 'processing');
@@ -146,6 +149,8 @@ exports.uploadDocument = async (req, res) => {
     });
 
     console.log(`✅✅ Document ${documentId} processed successfully! ${chunkCount} chunks stored.`);
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`⏱️ Total processing time: ${duration} seconds`);
 
   } catch (error) {
     console.error(`❌❌ Processing failed for document ${documentId}:`);
