@@ -65,7 +65,7 @@ const { getFileExtension } = require('../middlewares/upload');
         id: document.id,
         title: document.title,
         fileType: document.file_type,
-        processingStatus: 'queued',
+        processingStatus: 'pending',
         uploadedAt: document.uploaded_at
       },
       message: 'Document uploaded successfully. Processing queued.'
