@@ -1,71 +1,5 @@
 
 
-exports.uploadDocument = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    const { originalname, mimetype, buffer, size } = req.file;
-    const userId = req.user.id;
-
-    console.log(`Processing upload: ${originalname} (${mimetype})`);
-
-    const fileType = getFileExtension(mimetype).replace('.', '');
-
-    // Upload to Cloudinary
-    const uploadResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'manufacturing-compliance',
-          resource_type: 'auto',
-          public_id: `${Date.now()}-${originalname.replace(/\.[^/.]+$/, '')}`
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      uploadStream.end(buffer);
-    });
-
-    console.log('File uploaded to Cloudinary:', uploadResult.secure_url);
-
-    // Create document record
-    const document = await documentRepository.createDocument({
-      user_id: userId,
-      title: originalname.replace(/\.[^/.]+$/, ''),
-      filename: originalname,
-      file_type: fileType,
-      file_path: uploadResult.secure_url,
-      cloudinary_id: uploadResult.public_id,
-      mime_type: mimetype,
-      file_size: size,
-      processing_status: 'queued' // Changed from 'pending'
-    });
-
-    console.log('Document queued:', document.id);
-
-    // Trigger Render worker (fire and forget)
-    triggerWorker(document.id, uploadResult.secure_url, mimetype, fileType);
-
-    res.status(201).json({
-      document: {
-        id: document.id,
-        title: document.title,
-        fileType: document.file_type,
-        processingStatus: 'queued',
-        uploadedAt: document.uploaded_at
-      },
-      message: 'Document uploaded successfully. Processing queued.'
-    });
-
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
-
 const cloudinary = require('../config/cloudinary');
 const documentRepository = require('../repositories/documentRepository');
 const { parseFile, chunkText } = require('../services/fileparsingService');
@@ -146,10 +80,8 @@ const { getFileExtension } = require('../middlewares/upload');
 
 
 
-\
-/**
- * Process document asynchronously (background job)
- */
+
+
 
 
 
