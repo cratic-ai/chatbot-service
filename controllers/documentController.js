@@ -11,7 +11,8 @@ const { getFileExtension } = require('../middlewares/upload');
  * Upload and process document
  */
 
- exports.uploadDocument = async (req, res) => {
+
+exports.uploadDocument = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -24,13 +25,15 @@ const { getFileExtension } = require('../middlewares/upload');
 
     const fileType = getFileExtension(mimetype).replace('.', '');
 
-    // Upload to Cloudinary
+    // ✅ Upload to Cloudinary with PUBLIC access
     const uploadResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: 'manufacturing-compliance',
           resource_type: 'auto',
-          public_id: `${Date.now()}-${originalname.replace(/\.[^/.]+$/, '')}`
+          public_id: `${Date.now()}-${originalname.replace(/\.[^/.]+$/, '')}`,
+          access_mode: 'public', // ✅ ADD THIS - makes file publicly accessible
+          type: 'upload' // ✅ ADD THIS - not 'authenticated'
         },
         (error, result) => {
           if (error) reject(error);
@@ -41,6 +44,41 @@ const { getFileExtension } = require('../middlewares/upload');
     });
 
     console.log('File uploaded to Cloudinary:', uploadResult.secure_url);
+
+    // Create document record
+    const document = await documentRepository.createDocument({
+      user_id: userId,
+      title: originalname.replace(/\.[^/.]+$/, ''),
+      filename: originalname,
+      file_type: fileType,
+      file_path: uploadResult.secure_url,
+      cloudinary_id: uploadResult.public_id,
+      mime_type: mimetype,
+      file_size: size,
+      processing_status: 'queued'
+    });
+
+    console.log('Document queued:', document.id);
+
+    // Trigger Render worker
+    triggerWorker(document.id, uploadResult.secure_url, mimetype, fileType);
+
+    res.status(201).json({
+      document: {
+        id: document.id,
+        title: document.title,
+        fileType: document.file_type,
+        processingStatus: 'queued',
+        uploadedAt: document.uploaded_at
+      },
+      message: 'Document uploaded successfully. Processing queued.'
+    });
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
     // Create document record
     const document = await documentRepository.createDocument({
