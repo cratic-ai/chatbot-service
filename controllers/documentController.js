@@ -1,5 +1,4 @@
 
-
 const cloudinary = require('../config/cloudinary');
 const documentRepository = require('../repositories/documentRepository');
 const { parseFile, chunkText } = require('../services/fileparsingService');
@@ -80,7 +79,7 @@ exports.uploadDocument = async (req, res) => {
   }
 };
 
-    console.log('Document queued:', document.id);
+ // console.log('Document queued:', document.id);
 
 const triggerWorker = async (documentId, cloudinaryUrl, mimeType, fileType) => {
   try {
