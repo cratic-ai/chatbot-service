@@ -120,24 +120,7 @@ const triggerWorker = async (documentId, cloudinaryUrl, mimeType, fileType) => {
   }
 };
     // Trigger Render worker (fire and forget)
-    triggerWorker(document.id, uploadResult.secure_url, mimetype, fileType);
 
-    res.status(201).json({
-      document: {
-        id: document.id,
-        title: document.title,
-        fileType: document.file_type,
-        processingStatus: 'pending',
-        uploadedAt: document.uploaded_at
-      },
-      message: 'Document uploaded successfully. Processing queued.'
-    });
-
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
 
 
 
