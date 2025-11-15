@@ -52,7 +52,7 @@ const { getFileExtension } = require('../middlewares/upload');
       cloudinary_id: uploadResult.public_id,
       mime_type: mimetype,
       file_size: size,
-      processing_status: 'queued' // Changed from 'pending'
+      processing_status: 'pending' // Changed from 'pending'
     });
 
     console.log('Document queued:', document.id);
