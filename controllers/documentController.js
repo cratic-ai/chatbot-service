@@ -80,19 +80,6 @@ exports.uploadDocument = async (req, res) => {
   }
 };
 
-    // Create document record
-    const document = await documentRepository.createDocument({
-      user_id: userId,
-      title: originalname.replace(/\.[^/.]+$/, ''),
-      filename: originalname,
-      file_type: fileType,
-      file_path: uploadResult.secure_url,
-      cloudinary_id: uploadResult.public_id,
-      mime_type: mimetype,
-      file_size: size,
-      processing_status: 'pending' // Changed from 'pending'
-    });
-
     console.log('Document queued:', document.id);
 
 const triggerWorker = async (documentId, cloudinaryUrl, mimeType, fileType) => {
