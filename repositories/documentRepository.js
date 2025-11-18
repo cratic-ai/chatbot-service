@@ -27,8 +27,19 @@ exports.createDocument = async (documentData) => {
     throw error;
   }
 };
-;
+// repositories/documentRepository.js
 
+exports.getPendingDocuments = async () => {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('processing_status', 'pending')
+    .order('uploaded_at', { ascending: true })
+    .limit(10);
+
+  if (error) throw error;
+  return data || [];
+};
 /**
  * Get all documents for a user
  * @param {string} userId - User UUID

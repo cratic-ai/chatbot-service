@@ -9,7 +9,8 @@ const app = express();
 const port = 3001;
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
+  'https://mfgcompliance.craticai.com',
+    'https://mfgcompliance.craticai.com',
     'http://localhost:5173',
     'https://chatbot-front-lilac.vercel.app'
   ],
