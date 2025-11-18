@@ -95,8 +95,6 @@ exports.sendMessage = async (req, res) => {
     // Get system prompt in appropriate language
     const systemPrompt = getSystemPrompt(detectedLanguage);
 
-    // Prepare user prompt
-const systemPrompt = getSystemPrompt(detectedLanguage);
 
 // Prepare user prompt
 let userPrompt;
