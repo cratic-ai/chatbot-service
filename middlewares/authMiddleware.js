@@ -3,8 +3,12 @@ const NodeCache = require('node-cache');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
-// Cache tokens for 5 minutes
-const tokenCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+// ✅ Cache verified tokens for 5 minutes
+const tokenCache = new NodeCache({ 
+  stdTTL: 300, // 5 minutes
+  checkperiod: 60, // Check for expired entries every 60 seconds
+  useClones: false // Better performance
+});
 
 exports.authenticate = (req, res, next) => {
   try {
@@ -16,14 +20,14 @@ exports.authenticate = (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    // Check cache first
+    // ✅ Check cache first - HUGE performance boost
     const cachedUser = tokenCache.get(token);
     if (cachedUser) {
       req.user = cachedUser;
       return next();
     }
 
-    // Verify token
+    // ✅ Verify token with JWT
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const user = {
@@ -31,12 +35,18 @@ exports.authenticate = (req, res, next) => {
       email: decoded.email
     };
 
-    // Cache the verified token
+    // ✅ Cache the verified token
     tokenCache.set(token, user);
 
     req.user = user;
     next();
   } catch (error) {
+    // ✅ Remove from cache if verification fails
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      tokenCache.del(token);
+    }
+
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({ message: 'Invalid token' });
     }
@@ -45,4 +55,13 @@ exports.authenticate = (req, res, next) => {
     }
     return res.status(500).json({ message: 'Authentication failed' });
   }
+};
+
+// ✅ Clear cache on logout
+exports.logout = (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (token) {
+    tokenCache.del(token);
+  }
+  res.json({ message: 'Logged out successfully' });
 };
