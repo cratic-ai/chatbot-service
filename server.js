@@ -11,6 +11,7 @@ app.use(cors({
   origin: [
   'https://mfgcompliance.craticai.com',
     'https://mfgcompliance.craticai.com',
+   'https://mfgcompliance-cai.vercel.app/',
     'http://localhost:5173',
     'https://chatbot-front-lilac.vercel.app'
   ],
