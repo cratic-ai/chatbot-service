@@ -4,8 +4,8 @@ const NodeCache = require('node-cache');
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
 // ✅ Cache verified tokens for 5 minutes
-const tokenCache = new NodeCache({
-  stdTTL: 3600, // 5 minutes
+const tokenCache = new NodeCache({ 
+  stdTTL: 300, // 5 minutes
   checkperiod: 60, // Check for expired entries every 60 seconds
   useClones: false // Better performance
 });
