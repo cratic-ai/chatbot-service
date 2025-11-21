@@ -1,10 +1,13 @@
 const jwt = require('jsonwebtoken');
+const NodeCache = require('node-cache');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
+// Cache tokens for 5 minutes
+const tokenCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+
 exports.authenticate = (req, res, next) => {
   try {
-    // Get token from header
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -13,15 +16,25 @@ exports.authenticate = (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
+    // Check cache first
+    const cachedUser = tokenCache.get(token);
+    if (cachedUser) {
+      req.user = cachedUser;
+      return next();
+    }
+
     // Verify token
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // Add user info to request
-    req.user = {
+    const user = {
       userId: decoded.userId,
       email: decoded.email
     };
 
+    // Cache the verified token
+    tokenCache.set(token, user);
+
+    req.user = user;
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
