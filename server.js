@@ -29,9 +29,10 @@ app.use('/client', earlyAccessRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/documents', require('./routes/documentRoutes'));
-
+app.use('/api/gemini', require('./routes/chatgeminiRoutes'));
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
 module.exports = app;
+
 
