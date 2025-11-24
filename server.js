@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const earlyAccessRoutes = require('./routes/earlyaccessRoutes');
-const { apiLimiter } = require('./utils/rateLimiter');
+const { apiLimiter } = require('./utils/ratelimiter');
 require('dotenv').config();
 
 console.log('🔍 JWT_SECRET loaded:', process.env.JWT_SECRET ? `YES (${process.env.JWT_SECRET.substring(0, 10)}...)` : 'NO - MISSING!');

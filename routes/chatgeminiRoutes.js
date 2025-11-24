@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { isAuthenticated } = require('../middlewares/auth');
 const geminiController = require('../controllers/geminiController');
-const { aiOperationLimiter, uploadLimiter } = require('../utils/rateLimiter');
+const { aiOperationLimiter, uploadLimiter } = require('../utils/ratelimiter');
 
 // ============================================
 // RAG Store Management (Light operations)
