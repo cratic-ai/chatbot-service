@@ -1,7 +1,7 @@
 // controllers/gemini.controller.optimized.js
 const { getAI } = require('../config/gemini');
 const cache = require('../utils/cache');
-const asyncHandler = require('../middleware/asyncHandler');
+const asyncHandler = require('../middlewares/asyncHandler');
 
 // ============================================
 // OPTIMIZED: List RAG Stores with Caching
