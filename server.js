@@ -6,8 +6,9 @@ const { apiLimiter } = require('./utils/ratelimiter');
 require('dotenv').config();
 
 console.log('🔍 JWT_SECRET loaded:', process.env.JWT_SECRET ? `YES (${process.env.JWT_SECRET.substring(0, 10)}...)` : 'NO - MISSING!');
-
 const app = express();
+app.set('trust proxy', 1);
+
 const port = 3001;
 
 // ============================================
