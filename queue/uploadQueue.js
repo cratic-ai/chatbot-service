@@ -1,13 +1,15 @@
 const { Queue, Worker } = require('bullmq');
 const { createClient } = require('redis');
 
+require('dotenv').config(); // OR: import 'dotenv/config';
+
+// ... rest of your imports and code
 let uploadQueue = null;
 
 // Create Redis connection for BullMQ
 const connection = createClient({
-    username: process.env.REDIS_USERNAME || 'default',
+    username: 'default',
     password: process.env.REDIS_PASSWORD,
-
     socket: {
         host: 'redis-15826.crce179.ap-south-1-1.ec2.cloud.redislabs.com',
         port: 15826
