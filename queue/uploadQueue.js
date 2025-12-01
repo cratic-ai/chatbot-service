@@ -5,8 +5,9 @@ let uploadQueue = null;
 
 // Create Redis connection for BullMQ
 const connection = createClient({
-    username: 'default',
-    password: 'GxaA803A4uEeVkeyUbbuhKnEpuigqDAI',
+    username: process.env.REDIS_USERNAME || 'default',
+    password: process.env.REDIS_PASSWORD,
+
     socket: {
         host: 'redis-15826.crce179.ap-south-1-1.ec2.cloud.redislabs.com',
         port: 15826
