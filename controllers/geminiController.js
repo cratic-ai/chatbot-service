@@ -445,6 +445,5 @@ exports.generateSpeech = asyncHandler(async (req, res) => {
     if (!base64Audio) {
         throw new Error("No audio data received from API.");
     }
-
-    res.json({ audio: base64Audio });
+   res.json({ audio: base64Audio });
 });

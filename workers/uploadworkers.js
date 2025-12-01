@@ -1,142 +1,341 @@
-// workers/uploadWorker.js
+//// workers/uploadWorker.js
+//const uploadQueue = require('../queue/uploadQueue');
+//const UserDocument = require('../models/UserDocument');
+//const { getAI } = require('../config/gemini');
+//    const cacheManager = require('../utils/cacheManager');
+//const socketManager = require('../socket/socketDocument');
+//const { uploadDuration, uploadCounter, uploadSizeHistogram, activeUploads } = require('../monitoring/metrics');
+//
+//// Process upload jobs
+//uploadQueue.process('process-upload', parseInt(process.env.QUEUE_CONCURRENCY) || 5, async (job) => {
+//    const { documentId, storeName, file, userId } = job.data;
+//    const timer = uploadDuration.startTimer({ store: storeName });
+//
+//    activeUploads.inc();
+//
+//    try {
+//        console.log(`🚀 Processing upload job ${job.id} for document ${documentId}`);
+//
+//        // Get document from DB
+//        const doc = await UserDocument.findById(documentId);
+//        if (!doc) {
+//            throw new Error('Document not found in database');
+//        }
+//
+//        // Update status to uploading
+//        await doc.updateProgress(5, 'uploading');
+//        doc.uploadStartedAt = new Date();
+//        await doc.save();
+//
+//        socketManager.emitDocumentUpdate(documentId, {
+//            status: 'uploading',
+//            progress: 5,
+//            message: 'Starting upload to Gemini...'
+//        });
+//
+//        job.progress(5);
+//
+//        // Get Gemini AI instance
+//        const ai = getAI();
+//
+//        // Convert buffer back to file-like object
+//        const fileBuffer = Buffer.from(file.buffer);
+//        const fileObject = {
+//            buffer: fileBuffer,
+//            originalname: file.originalname,
+//            mimetype: file.mimetype,
+//            size: file.size
+//        };
+//
+//        // Start upload to Gemini
+//        console.log(`📤 Uploading to Gemini store: ${storeName}`);
+//        const operation = await ai.fileSearchStores.uploadToFileSearchStore({
+//            fileSearchStoreName: storeName,
+//            file: fileObject,
+//            config: {
+//                mimeType: file.mimetype
+//            }
+//        });
+//
+//        // Save operation ID
+//        doc.operationId = operation.name;
+//        await doc.save();
+//
+//        await doc.updateProgress(20, 'processing');
+//        socketManager.emitDocumentUpdate(documentId, {
+//            status: 'processing',
+//            progress: 20,
+//            message: 'Upload initiated, processing document...'
+//        });
+//        job.progress(20);
+//
+//        // Poll operation status
+//        let op = operation;
+//        let progress = 20;
+//        let pollCount = 0;
+//        const maxPolls = 40; // 40 polls * 3 seconds = 2 minutes max
+//
+//        while (!op.done && pollCount < maxPolls) {
+//            await new Promise(resolve => setTimeout(resolve, 3000));
+//
+//            try {
+//                op = await ai.operations.get({ operation: op.name });
+//                pollCount++;
+//
+//                // Increment progress
+//                progress = Math.min(20 + (pollCount * 2), 90);
+//                await doc.updateProgress(progress, 'processing');
+//
+//                socketManager.emitDocumentUpdate(documentId, {
+//                    status: 'processing',
+//                    progress: progress,
+//                    message: 'Processing document...'
+//                });
+//
+//                job.progress(progress);
+//
+//                console.log(`📊 Poll ${pollCount}: Operation status - ${op.done ? 'Done' : 'In Progress'}`);
+//            } catch (pollError) {
+//                console.error('Polling error:', pollError);
+//                // Continue polling even if one poll fails
+//            }
+//        }
+//
+//        // Check if operation completed
+//        if (!op.done) {
+//            throw new Error('Upload operation timed out');
+//        }
+//
+//        // Extract document name from operation result
+//        const documentName = op.result?.file?.name || op.metadata?.file?.name;
+//
+//        if (!documentName) {
+//            throw new Error('Document name not found in operation result');
+//        }
+//
+//        console.log(`✅ Upload completed: ${documentName}`);
+//
+//        // Update document to ready
+//        doc.uploadStatus = 'ready';
+//        doc.documentName = documentName;
+//        doc.progress = 100;
+//        doc.processedAt = new Date();
+//        await doc.save();
+//
+//        // Emit success to WebSocket
+//        socketManager.emitDocumentUpdate(documentId, {
+//            status: 'ready',
+//            progress: 100,
+//            message: 'Document ready!',
+//            documentName: documentName
+//        });
+//
+//        socketManager.emitUserUpdate(userId, {
+//            type: 'document-ready',
+//            documentId: documentId,
+//            documentName: doc.originalFilename
+//        });
+//
+//        job.progress(100);
+//
+//        // Invalidate caches
+//        await cacheManager.invalidateByTags([
+//            `store:${storeName}`,
+//            `user:${userId}`,
+//            'all_documents'
+//        ]);
+//
+//        // Record metrics
+//        uploadCounter.inc({
+//            status: 'success',
+//            store: storeName,
+//            mime_type: file.mimetype
+//        });
+//        uploadSizeHistogram.observe({ mime_type: file.mimetype }, file.size);
+//        timer({ status: 'success', store: storeName });
+//
+//        activeUploads.dec();
+//
+//        return {
+//            success: true,
+//            documentId: documentId,
+//            documentName: documentName
+//        };
+//
+//    } catch (error) {
+//        console.error(`❌ Upload job ${job.id} failed:`, error);
+//
+//        // Update document status to failed
+//        const doc = await UserDocument.findById(documentId);
+//        if (doc) {
+//            await doc.markAsFailed(error);
+//
+//            socketManager.emitDocumentUpdate(documentId, {
+//                status: 'failed',
+//                progress: doc.progress,
+//                message: error.message,
+//                error: error.message
+//            });
+//
+//            socketManager.emitUserUpdate(userId, {
+//                type: 'document-failed',
+//                documentId: documentId,
+//                documentName: doc.originalFilename,
+//                error: error.message
+//            });
+//        }
+//
+//        // Record metrics
+//        uploadCounter.inc({
+//            status: 'failed',
+//            store: storeName,
+//            mime_type: file.mimetype
+//        });
+//        timer({ status: 'failed', store: storeName });
+//
+//        activeUploads.dec();
+//
+//        throw error; // Bull will handle retries
+//    }
+//});
+//
+//// Worker event listeners
+//uploadQueue.on('completed', async (job, result) => {
+//    console.log(`✅ Job ${job.id} completed:`, result);
+//});
+//
+//uploadQueue.on('failed', async (job, err) => {
+//    console.error(`❌ Job ${job.id} failed after all retries:`, err.message);
+//
+//    // Check if max retries reached
+//    const { documentId } = job.data;
+//    const doc = await UserDocument.findById(documentId);
+//
+//    if (doc && doc.retryCount >= doc.maxRetries) {
+//        console.log(`🛑 Max retries reached for document ${documentId}`);
+//        // Could send email notification here
+//    }
+//});
+//
+//console.log('✅ Upload worker initialized');
+//
+//module.exports = uploadQueue;
+
+// controllers/uploadHelper.js
 const uploadQueue = require('../queue/uploadQueue');
-const UserDocument = require('../models/UserDocument');
 const { getAI } = require('../config/gemini');
+const UserDocument = require('../models/UserDocument');
 const cacheManager = require('../utils/cacheManager');
-const socketManager = require('../socket/documentSocket');
-const { uploadDuration, uploadCounter, uploadSizeHistogram, activeUploads } = require('../monitoring/metrics');
 
-// Process upload jobs
-uploadQueue.process('process-upload', parseInt(process.env.QUEUE_CONCURRENCY) || 5, async (job) => {
-    const { documentId, storeName, file, userId } = job.data;
-    const timer = uploadDuration.startTimer({ store: storeName });
+/**
+ * Process upload with queue if available, otherwise synchronously
+ */
+async function processUpload(documentId, storeName, file, userId) {
+    // If queue is available, use it
+    if (uploadQueue) {
+        try {
+            const job = await uploadQueue.add('process-upload', {
+                documentId,
+                storeName,
+                file: {
+                    buffer: file.buffer.toString('base64'), // Convert to base64 for Redis
+                    originalname: file.originalname,
+                    mimetype: file.mimetype,
+                    size: file.size
+                },
+                userId
+            }, {
+                attempts: 3,
+                backoff: {
+                    type: 'exponential',
+                    delay: 5000
+                }
+            });
 
-    activeUploads.inc();
+            console.log(`✅ Upload queued with job ID: ${job.id}`);
+            return {
+                queued: true,
+                jobId: job.id,
+                message: 'Upload queued for processing'
+            };
+        } catch (error) {
+            console.error('Failed to queue upload, falling back to sync:', error);
+            // Fall through to synchronous processing
+        }
+    }
+
+    // Synchronous processing (no queue available)
+    console.log('⚠️  Processing upload synchronously');
+
+    const doc = await UserDocument.findById(documentId);
+    if (!doc) {
+        throw new Error('Document not found');
+    }
+
+    // Start processing in background
+    processSyncUpload(documentId, storeName, file, userId).catch(err => {
+        console.error('Sync upload failed:', err);
+    });
+
+    return {
+        queued: false,
+        message: 'Upload processing started',
+        documentId
+    };
+}
+
+/**
+ * Process upload synchronously (without queue)
+ */
+async function processSyncUpload(documentId, storeName, file, userId) {
+    const doc = await UserDocument.findById(documentId);
 
     try {
-        console.log(`🚀 Processing upload job ${job.id} for document ${documentId}`);
-
-        // Get document from DB
-        const doc = await UserDocument.findById(documentId);
-        if (!doc) {
-            throw new Error('Document not found in database');
-        }
-
-        // Update status to uploading
         await doc.updateProgress(5, 'uploading');
-        doc.uploadStartedAt = new Date();
-        await doc.save();
 
-        socketManager.emitDocumentUpdate(documentId, {
-            status: 'uploading',
-            progress: 5,
-            message: 'Starting upload to Gemini...'
-        });
-
-        job.progress(5);
-
-        // Get Gemini AI instance
         const ai = getAI();
 
-        // Convert buffer back to file-like object
-        const fileBuffer = Buffer.from(file.buffer);
-        const fileObject = {
-            buffer: fileBuffer,
-            originalname: file.originalname,
-            mimetype: file.mimetype,
-            size: file.size
-        };
-
-        // Start upload to Gemini
-        console.log(`📤 Uploading to Gemini store: ${storeName}`);
         const operation = await ai.fileSearchStores.uploadToFileSearchStore({
             fileSearchStoreName: storeName,
-            file: fileObject,
+            file: file,
             config: {
                 mimeType: file.mimetype
             }
         });
 
-        // Save operation ID
         doc.operationId = operation.name;
         await doc.save();
-
         await doc.updateProgress(20, 'processing');
-        socketManager.emitDocumentUpdate(documentId, {
-            status: 'processing',
-            progress: 20,
-            message: 'Upload initiated, processing document...'
-        });
-        job.progress(20);
 
-        // Poll operation status
+        // Poll for completion
         let op = operation;
-        let progress = 20;
         let pollCount = 0;
-        const maxPolls = 40; // 40 polls * 3 seconds = 2 minutes max
+        const maxPolls = 40;
 
         while (!op.done && pollCount < maxPolls) {
             await new Promise(resolve => setTimeout(resolve, 3000));
+            op = await ai.operations.get({ operation: op.name });
+            pollCount++;
 
-            try {
-                op = await ai.operations.get({ operation: op.name });
-                pollCount++;
-
-                // Increment progress
-                progress = Math.min(20 + (pollCount * 2), 90);
-                await doc.updateProgress(progress, 'processing');
-
-                socketManager.emitDocumentUpdate(documentId, {
-                    status: 'processing',
-                    progress: progress,
-                    message: 'Processing document...'
-                });
-
-                job.progress(progress);
-
-                console.log(`📊 Poll ${pollCount}: Operation status - ${op.done ? 'Done' : 'In Progress'}`);
-            } catch (pollError) {
-                console.error('Polling error:', pollError);
-                // Continue polling even if one poll fails
-            }
+            const progress = Math.min(20 + (pollCount * 2), 90);
+            await doc.updateProgress(progress, 'processing');
         }
 
-        // Check if operation completed
         if (!op.done) {
             throw new Error('Upload operation timed out');
         }
 
-        // Extract document name from operation result
         const documentName = op.result?.file?.name || op.metadata?.file?.name;
 
         if (!documentName) {
             throw new Error('Document name not found in operation result');
         }
 
-        console.log(`✅ Upload completed: ${documentName}`);
-
-        // Update document to ready
         doc.uploadStatus = 'ready';
         doc.documentName = documentName;
         doc.progress = 100;
         doc.processedAt = new Date();
         await doc.save();
-
-        // Emit success to WebSocket
-        socketManager.emitDocumentUpdate(documentId, {
-            status: 'ready',
-            progress: 100,
-            message: 'Document ready!',
-            documentName: documentName
-        });
-
-        socketManager.emitUserUpdate(userId, {
-            type: 'document-ready',
-            documentId: documentId,
-            documentName: doc.originalFilename
-        });
-
-        job.progress(100);
 
         // Invalidate caches
         await cacheManager.invalidateByTags([
@@ -145,78 +344,16 @@ uploadQueue.process('process-upload', parseInt(process.env.QUEUE_CONCURRENCY) ||
             'all_documents'
         ]);
 
-        // Record metrics
-        uploadCounter.inc({
-            status: 'success',
-            store: storeName,
-            mime_type: file.mimetype
-        });
-        uploadSizeHistogram.observe({ mime_type: file.mimetype }, file.size);
-        timer({ status: 'success', store: storeName });
-
-        activeUploads.dec();
-
-        return {
-            success: true,
-            documentId: documentId,
-            documentName: documentName
-        };
+        console.log(`✅ Sync upload completed: ${documentName}`);
 
     } catch (error) {
-        console.error(`❌ Upload job ${job.id} failed:`, error);
-
-        // Update document status to failed
-        const doc = await UserDocument.findById(documentId);
-        if (doc) {
-            await doc.markAsFailed(error);
-
-            socketManager.emitDocumentUpdate(documentId, {
-                status: 'failed',
-                progress: doc.progress,
-                message: error.message,
-                error: error.message
-            });
-
-            socketManager.emitUserUpdate(userId, {
-                type: 'document-failed',
-                documentId: documentId,
-                documentName: doc.originalFilename,
-                error: error.message
-            });
-        }
-
-        // Record metrics
-        uploadCounter.inc({
-            status: 'failed',
-            store: storeName,
-            mime_type: file.mimetype
-        });
-        timer({ status: 'failed', store: storeName });
-
-        activeUploads.dec();
-
-        throw error; // Bull will handle retries
+        console.error('Sync upload failed:', error);
+        await doc.markAsFailed(error);
+        throw error;
     }
-});
+}
 
-// Worker event listeners
-uploadQueue.on('completed', async (job, result) => {
-    console.log(`✅ Job ${job.id} completed:`, result);
-});
-
-uploadQueue.on('failed', async (job, err) => {
-    console.error(`❌ Job ${job.id} failed after all retries:`, err.message);
-
-    // Check if max retries reached
-    const { documentId } = job.data;
-    const doc = await UserDocument.findById(documentId);
-
-    if (doc && doc.retryCount >= doc.maxRetries) {
-        console.log(`🛑 Max retries reached for document ${documentId}`);
-        // Could send email notification here
-    }
-});
-
-console.log('✅ Upload worker initialized');
-
-module.exports = uploadQueue;
+module.exports = {
+    processUpload,
+    processSyncUpload
+};

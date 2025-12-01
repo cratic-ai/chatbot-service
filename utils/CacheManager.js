@@ -2,14 +2,22 @@
 const Redis = require('ioredis');
 
 class CacheManager {
-    constructor() {
-        this.redis = new Redis(process.env.REDIS_URL, {
+    constructor() {  // Parse Redis connection details
+        const redisConfig = {
+              host: process.env.REDIS_HOST || 'redis-15826.crce179.ap-south-1-1.ec2.cloud.redislabs.com',
+            port: parseInt(process.env.REDIS_PORT) || 15826,
+            password: process.env.REDIS_PASSWORD || 'GxaA803A4uEeVkeyUbbuhKnEpuigqDAI',
+            tls: {},
             retryStrategy: (times) => {
                 const delay = Math.min(times * 50, 2000);
                 return delay;
             },
-            maxRetriesPerRequest: 3
-        });
+            maxRetriesPerRequest: 3,
+            enableReadyCheck: true,
+            lazyConnect: false
+        };
+
+        this.redis = new Redis(redisConfig);
 
         this.redis.on('error', (err) => {
             console.error('Redis error:', err);
@@ -17,6 +25,10 @@ class CacheManager {
 
         this.redis.on('connect', () => {
             console.log('✅ Redis connected');
+        });
+
+        this.redis.on('ready', () => {
+            console.log('✅ Redis ready');
         });
     }
 
@@ -178,7 +190,5 @@ class CacheManager {
         await this.redis.quit();
     }
 }
-
-
 
 module.exports = new CacheManager();
