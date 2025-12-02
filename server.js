@@ -79,6 +79,7 @@ if (process.env.REDIS_URL || process.env.REDIS_HOST) {
 // ============================================
 app.use(cors({
   origin: [
+  'https://mfgcompliance-cai.vercel.app',
     'https://mfgcompliance.craticai.com',
     'https://mfgcompliance-cai.vercel.app',
     'http://localhost:5173',
