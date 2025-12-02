@@ -270,7 +270,7 @@ const gracefulShutdown = async (signal) => {
     }
 
     // Close cache/Redis connections
-    const cacheManager = require('./utils/cacheManager');
+    const cacheManager = require('./utils/CacheManager');
     if (cacheManager && cacheManager.close) {
       await cacheManager.close();
       console.log('✅ Cache connection closed');

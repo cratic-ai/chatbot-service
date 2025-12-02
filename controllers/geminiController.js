@@ -32,17 +32,45 @@ exports.listRagStores = asyncHandler(async (req, res) => {
 // controllers/geminiController.js
 
 
-exports.createRagStore = async (req, res) => {
-    const { displayName } = req.body;
 
-    const ai = getAI(); // This gets the GoogleGenerativeAI instance
 
-    // Use the methods available on the instance
-    const ragStore = await ai.fileSearchStores.create({
-        config: { displayName }
-    });
+exports.createRagStore = async (req, res, next) => {
+    try {
+        const { displayName } = req.body;
 
-    res.json({ name: ragStore.name });
+        if (!displayName) {
+            return res.status(400).json({ message: 'Display name is required' });
+        }
+
+        console.log('🔍 Getting AI instance...');
+        const ai = getAI();
+
+        console.log('🔍 AI instance:', {
+            hasFileSearchStores: !!ai.fileSearchStores,
+            aiType: typeof ai,
+            aiKeys: Object.keys(ai)
+        });
+
+        if (!ai.fileSearchStores) {
+            throw new Error('fileSearchStores is not available on AI instance');
+        }
+
+        console.log('📝 Creating RAG store with displayName:', displayName);
+        const ragStore = await ai.fileSearchStores.create({
+            config: { displayName }
+        });
+
+        if (!ragStore.name) {
+            throw new Error("Failed to create RAG store: name is missing.");
+        }
+
+        console.log('✅ RAG store created:', ragStore.name);
+        res.json({ name: ragStore.name });
+
+    } catch (error) {
+        console.error('❌ Error in createRagStore:', error);
+        next(error);
+    }
 };
 
 // ============================================
