@@ -30,7 +30,7 @@ exports.listRagStores = asyncHandler(async (req, res) => {
 // OPTIMIZED: Create RAG Store
 // ============================================
 // controllers/geminiController.js
-const { getAI } = require('../config/gemini');
+
 
 exports.createRagStore = async (req, res) => {
     const { displayName } = req.body;
