@@ -1,7 +1,4 @@
-// utils/geminiClient.js
-const { GoogleGenAI } = require('@google/generative-ai');
 
-let aiInstance = null;
 
 /**
  * Get singleton Gemini AI client
