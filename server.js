@@ -64,7 +64,37 @@ app.use(cors({
 // Explicit preflight handling
 app.options('*', cors());
 
+// Add to your server.js BEFORE routes
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
 
+    console.log('📍 Incoming request:', {
+        method: req.method,
+        path: req.path,
+        origin: origin,
+        headers: req.headers
+    });
+
+    // Force CORS headers
+    res.setHeader('Access-Control-Allow-Origin', origin || 'https://mfgcompliance-cai.vercel.app');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+
+    // Log response headers
+    const originalSend = res.send;
+    res.send = function(data) {
+        console.log('📤 Response headers:', res.getHeaders());
+        originalSend.call(this, data);
+    };
+
+    if (req.method === 'OPTIONS') {
+        console.log('✅ Handling OPTIONS preflight');
+        return res.status(200).end();
+    }
+
+    next();
+});
 // Manual CORS headers as fallback (important for Vercel)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
