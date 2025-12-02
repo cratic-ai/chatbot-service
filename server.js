@@ -28,7 +28,60 @@ const app = express();
 const server = http.createServer(app);
 
 app.set('trust proxy', 1);
+// ============================================
+// CORS Configuration
+// ============================================
+const allowedOrigins = [
+  'https://mfgcompliance-cai.vercel.app',
+  'https://mfgcompliance.craticai.com',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://chatbot-front-lilac.vercel.app',
+  process.env.CLIENT_URL
+].filter(Boolean);
 
+// CORS middleware
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️  CORS blocked: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 86400, // 24 hours
+  optionsSuccessStatus: 200
+}));
+
+// Explicit preflight handling
+app.options('*', cors());
+
+
+// Manual CORS headers as fallback (important for Vercel)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  }
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  next();
+});
 const port = process.env.PORT || 3001;
 
 // ============================================
@@ -77,20 +130,7 @@ if (process.env.REDIS_URL || process.env.REDIS_HOST) {
 // ============================================
 // CORS Configuration
 // ============================================
-app.use(cors({
-  origin: [
-  'https://mfgcompliance-cai.vercel.app',
-    'https://mfgcompliance.craticai.com',
-    'https://mfgcompliance-cai.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://chatbot-front-lilac.vercel.app',
-    process.env.CLIENT_URL
-  ].filter(Boolean),
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+
 
 // ============================================
 // Body Parser
