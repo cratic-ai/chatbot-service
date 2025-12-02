@@ -7,14 +7,28 @@ let aiInstance = null;
  * Get singleton Gemini AI client
  * Reuses the same instance across all requests for better performance
  */
+// config/gemini.js
+
+// ✅ CORRECT: Use the proper import for @google/generative-ai
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+let aiInstance = null;
+
+/**
+ * Initialize and return a singleton instance of GoogleGenerativeAI
+ */
 function getAI() {
     if (!aiInstance) {
-        if (!process.env.GEMINI_API_KEY) {
-            throw new Error('GEMINI_API_KEY is not configured');
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        if (!apiKey) {
+            throw new Error('GEMINI_API_KEY is not set in environment variables');
         }
-        aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        console.log('✅ Gemini AI client initialized');
+
+        // ✅ Correct instantiation
+        aiInstance = new GoogleGenerativeAI(apiKey);
     }
+
     return aiInstance;
 }
 

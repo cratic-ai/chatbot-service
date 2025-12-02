@@ -41,15 +41,27 @@
 //}
 //
 //test();
-const https = require('https');
+//const https = require('https');npm install @google/generative-ai
+//
+//const subscriptionId = 'a5ba4b83-42be-471f-ba1b-e20008002a75';
+//const resourceGroup = 'CAI_genai';
+//const accountName = 'CAI-openai';
+//
+//console.log('Checking deployments for:', accountName);
+//console.log('Resource Group:', resourceGroup);
+//console.log('\n⚠️ Note: This requires Azure authentication');
+//console.log('Please use Azure Portal or Azure CLI instead for easier access.\n');
+//console.log('Azure Portal URL:');
+//console.log(`https://portal.azure.com/#@/resource/subscriptions/${subscriptionId}/resourceGroups/${resourceGroup}/providers/Microsoft.CognitiveServices/accounts/${accountName}/deployments`);npmnpm run dev
 
-const subscriptionId = 'a5ba4b83-42be-471f-ba1b-e20008002a75';
-const resourceGroup = 'CAI_genai';
-const accountName = 'CAI-openai';
-
-console.log('Checking deployments for:', accountName);
-console.log('Resource Group:', resourceGroup);
-console.log('\n⚠️ Note: This requires Azure authentication');
-console.log('Please use Azure Portal or Azure CLI instead for easier access.\n');
-console.log('Azure Portal URL:');
-console.log(`https://portal.azure.com/#@/resource/subscriptions/${subscriptionId}/resourceGroups/${resourceGroup}/providers/Microsoft.CognitiveServices/accounts/${accountName}/deployments`);npmnpm run dev
+// Quick test
+exports.testConnection = async (req, res) => {
+    try {
+        const ai = getAI();
+        console.log('✅ AI instance created successfully:', typeof ai);
+        res.json({ status: 'ok', message: 'Gemini AI connected' });
+    } catch (error) {
+        console.error('❌ Connection failed:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
