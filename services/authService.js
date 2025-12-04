@@ -2,7 +2,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const authRepository = require('../repositories/authRepository');
 
-const SALT_ROUNDS = 10;
+
+const SALT_ROUNDS = 8;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
 console.log('✅ authService.js loaded');
