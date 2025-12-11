@@ -11,7 +11,6 @@ const socketManager = require('./socket/socketDocument');
 const uploadQueue = require('./queue/uploadQueue');
 require('dotenv').config();
 
-
 if (uploadQueue) {
    require('./workers/uploadworkers');
     console.log('✅ Upload worker loaded and ready');
@@ -19,8 +18,6 @@ if (uploadQueue) {
     console.warn('⚠️  Upload worker not loaded - Queue not available');
     console.warn('⚠️  Uploads will be processed synchronously');
 }
-// Import worker to start processing jobs
-
 
 console.log('🔍 JWT_SECRET loaded:', process.env.JWT_SECRET ? `YES (${process.env.JWT_SECRET.substring(0, 10)}...)` : 'NO - MISSING!');
 
@@ -28,8 +25,9 @@ const app = express();
 const server = http.createServer(app);
 
 app.set('trust proxy', 1);
+
 // ============================================
-// CORS Configuration
+// CORS Configuration - SINGLE, UNIFIED SETUP
 // ============================================
 const allowedOrigins = [
   'https://mfgcompliance-cai.vercel.app',
@@ -40,12 +38,11 @@ const allowedOrigins = [
   process.env.CLIENT_URL
 ].filter(Boolean);
 
-// CORS middleware
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
+    // Allow requests with no origin (mobile apps, Postman, curl, etc.)
     if (!origin) return callback(null, true);
-
+    
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -59,78 +56,43 @@ app.use(cors({
   exposedHeaders: ['Content-Length', 'Content-Type'],
   maxAge: 86400, // 24 hours
   optionsSuccessStatus: 200
-}));
+};
 
-// Explicit preflight handling
-app.options('*', cors());
+// Apply CORS middleware ONCE
+app.use(cors(corsOptions));
 
-// Add to your server.js BEFORE routes
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
+// Handle preflight requests
+app.options('*', cors(corsOptions));
 
+// ============================================
+// Request Logging Middleware (Development)
+// ============================================
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
     console.log('📍 Incoming request:', {
         method: req.method,
         path: req.path,
-        origin: origin,
-        headers: req.headers
+        origin: req.headers.origin
     });
-
-    // Force CORS headers
-    res.setHeader('Access-Control-Allow-Origin', origin || 'https://mfgcompliance-cai.vercel.app');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-
-    // Log response headers
-    const originalSend = res.send;
-    res.send = function(data) {
-        console.log('📤 Response headers:', res.getHeaders());
-        originalSend.call(this, data);
-    };
-
-    if (req.method === 'OPTIONS') {
-        console.log('✅ Handling OPTIONS preflight');
-        return res.status(200).end();
-    }
-
     next();
-});
-// Manual CORS headers as fallback (important for Vercel)
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
+  });
+}
 
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  }
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  next();
-});
 const port = process.env.PORT || 3001;
 
 // ============================================
 // MongoDB Connection
 // ============================================
 if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI, {
-
-  })
+  mongoose.connect(process.env.MONGODB_URI, {})
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => {
     console.error('❌ MongoDB connection error:', err);
-    // Don't exit in production, continue without DB features
     if (process.env.NODE_ENV !== 'production') {
       process.exit(1);
     }
   });
 
-  // MongoDB connection event handlers
   mongoose.connection.on('disconnected', () => {
     console.warn('⚠️  MongoDB disconnected');
   });
@@ -158,25 +120,10 @@ if (process.env.REDIS_URL || process.env.REDIS_HOST) {
 }
 
 // ============================================
-// CORS Configuration
-// ============================================
-
-
-// ============================================
 // Body Parser
 // ============================================
 app.use(express.json({ limit: process.env.MAX_UPLOAD_SIZE || '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: process.env.MAX_UPLOAD_SIZE || '50mb' }));
-
-// ============================================
-// Request Logging Middleware (Development)
-// ============================================
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    console.log(`${req.method} ${req.path}`);
-    next();
-  });
-}
 
 // ============================================
 // Rate Limiting (only for API routes)
@@ -188,7 +135,6 @@ app.use('/api/', apiLimiter);
 // ============================================
 app.use('/health', healthRoutes);
 
-// Basic health endpoint
 app.get("/", (req, res) => {
   res.json({
     status: "ok",
@@ -218,7 +164,6 @@ app.use('/api/gemini', require('./routes/chatgeminiRoutes'));
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err);
 
-  // Don't expose internal errors in production
   const statusCode = err.statusCode || 500;
   const message = process.env.NODE_ENV === 'production' && statusCode === 500
     ? 'Internal Server Error'
@@ -252,24 +197,20 @@ const gracefulShutdown = async (signal) => {
   console.log(`\n🛑 ${signal} received - shutting down gracefully...`);
 
   try {
-    // Stop accepting new requests
     server.close(() => {
       console.log('✅ HTTP server closed');
     });
 
-    // Close queue
     if (uploadQueue) {
       await uploadQueue.close();
       console.log('✅ Queue closed');
     }
 
-    // Close database connection
     if (mongoose.connection.readyState === 1) {
       await mongoose.connection.close();
       console.log('✅ Database connection closed');
     }
 
-    // Close cache/Redis connections
     const cacheManager = require('./utils/CacheManager');
     if (cacheManager && cacheManager.close) {
       await cacheManager.close();
@@ -284,11 +225,9 @@ const gracefulShutdown = async (signal) => {
   }
 };
 
-// Handle shutdown signals
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Handle uncaught errors
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
   gracefulShutdown('uncaughtException');
@@ -298,7 +237,6 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
   gracefulShutdown('unhandledRejection');
 });
-
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   server.listen(port, () => {
@@ -312,6 +250,7 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     console.log('='.repeat(50) + '\n');
   });
 }
+
 
 module.exports = app;
 
