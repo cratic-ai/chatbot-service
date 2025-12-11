@@ -37,8 +37,10 @@ try {
   
   console.log('✅ Firebase Admin initialized with environment variables');
 }
-
 const db = admin.firestore();
+db.settings({
+  databaseId: 'craticaifirestore' 
+});
 
 console.log('✅ Firestore database instance created');
 console.log('================================\n');
