@@ -1,4 +1,8 @@
+require('dotenv').config();
+
 const admin = require('firebase-admin');
+
+
 
 console.log('================================');
 console.log('🔥 Initializing Firebase Admin SDK');
