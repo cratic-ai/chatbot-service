@@ -2,6 +2,9 @@ const passport = require('passport');
 const SamlStrategy = require('passport-saml').Strategy;
 const { SAML_CONFIG, validateConfig, extractAttribute } = require('../config/samlConfig');
 
+console.log('================================');
+console.log('🔐 SAML Auth Middleware Loading');
+console.log('================================');
 
 // Validate configuration on startup
 try {
