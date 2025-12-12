@@ -1,4 +1,4 @@
-const passport = require('../middleware/samlAuth');
+const passport = require('../middleware/samlauth');
 const authService = require('../services/authService');
 
 console.log('✅ samlController.js loaded');
