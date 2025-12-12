@@ -97,7 +97,88 @@ exports.createUser = async (email, password) => {
   }
 };
 
+/**
+ * Find or create user from SAML login
+ */
+exports.findOrCreateSamlUser = async (samlData) => {
+  console.log('\n================================');
+  console.log('🔍 findOrCreateSamlUser (Firestore)');
+  console.log('================================');
+  console.log('Email:', samlData.email);
 
+  try {
+    const userDoc = await db.collection('users').doc(samlData.email).get();
+
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      console.log('✅ Existing user found');
+      
+      // Update SAML info if needed
+      const updates = {
+        samlNameID: samlData.samlNameID,
+        samlSessionIndex: samlData.samlSessionIndex,
+        lastSamlLogin: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      // Update firstName/lastName if they weren't set before
+      if (samlData.firstName && !userData.firstName) {
+        updates.firstName = samlData.firstName;
+      }
+      if (samlData.lastName && !userData.lastName) {
+        updates.lastName = samlData.lastName;
+      }
+
+      await db.collection('users').doc(samlData.email).update(updates);
+
+      return {
+        id: userDoc.id,
+        ...userData,
+        ...updates
+      };
+    } else {
+      // Create new user
+      console.log('📝 Creating new SAML user');
+      const newUser = {
+        email: samlData.email,
+        firstName: samlData.firstName || '',
+        lastName: samlData.lastName || '',
+        samlNameID: samlData.samlNameID,
+        samlSessionIndex: samlData.samlSessionIndex,
+        authType: 'saml', // Mark as SAML user
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastSamlLogin: new Date().toISOString(),
+      };
+
+      await db.collection('users').doc(samlData.email).set(newUser);
+
+      console.log('✅ SAML user created');
+      return {
+        id: samlData.email,
+        ...newUser
+      };
+    }
+  } catch (error) {
+    console.error('❌ Error in findOrCreateSamlUser:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update user's SAML session info (for logout)
+ */
+exports.updateSamlSession = async (email, sessionData) => {
+  try {
+    await db.collection('users').doc(email).update({
+      samlSessionIndex: sessionData.sessionIndex,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('❌ Error updating SAML session:', error);
+    throw error;
+  }
+};
 // console.log('================================');
 // console.log('🔬 DEEP DIAGNOSTIC authRepository.js LOADING');
 // console.log('================================');
