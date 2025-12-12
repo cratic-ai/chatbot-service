@@ -1,6 +1,6 @@
 const express = require('express');
 const authController = require('../controllers/authController');
-const samlController = require('../controllers/samlController'); // 🆕
+// const samlController = require('../controllers/samlController'); // 🆕
 const { authenticate } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
@@ -33,18 +33,18 @@ router.get('/verify', authenticate, (req, res) => {
 // ========================================
 
 // Initiate SAML login
-router.get('/saml/login', samlController.initiateLogin);
+// router.get('/saml/login', samlController.initiateLogin);
 
-// SAML callback (receives SAML response from IdP)
-router.post('/saml/callback', samlController.handleCallback);
+// // SAML callback (receives SAML response from IdP)
+// router.post('/saml/callback', samlController.handleCallback);
 
-// SAML metadata (for IdP configuration)
-router.get('/saml/metadata', samlController.getMetadata);
+// // SAML metadata (for IdP configuration)
+// router.get('/saml/metadata', samlController.getMetadata);
 
-// SAML logout
-router.get('/saml/logout', authenticate, samlController.initiateLogout);
+// // SAML logout
+// router.get('/saml/logout', authenticate, samlController.initiateLogout);
 
-// SAML logout callback
-router.post('/saml/logout/callback', samlController.handleLogoutCallback);
+// // SAML logout callback
+// router.post('/saml/logout/callback', samlController.handleLogoutCallback);
 
 module.exports = router;
