@@ -106,3 +106,43 @@ exports.login = async (email, password) => {
     throw error;
   }
 };
+
+/**
+ * Handle SAML authentication
+ * Returns JWT token just like regular login
+ */
+exports.samlLogin = async (samlData) => {
+  console.log('================================');
+  console.log('🔐 authService.samlLogin called');
+  console.log('Email:', samlData.email);
+
+  try {
+    // Find or create user
+    const user = await authRepository.findOrCreateSamlUser(samlData);
+    
+    console.log('Generating JWT token for SAML user...');
+    
+    // Generate same JWT token format as regular login
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email,
+        authType: 'saml' // Optional: track auth method
+      },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    console.log('✅ SAML login successful, token generated');
+    console.log('================================');
+    
+    return { token, user };
+  } catch (error) {
+    console.error('❌ authService.samlLogin ERROR:', error);
+    throw error;
+  }
+};
+
+
+
+
