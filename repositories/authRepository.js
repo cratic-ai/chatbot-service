@@ -98,7 +98,9 @@ exports.createUser = async (email, password) => {
 };
 
 /**
- * Find or create user from SAML login
+ * Find or create user from SAML authentication
+ * @param {Object} samlData - User data from SAML
+ * @returns {Object} - User document with id
  */
 exports.findOrCreateSamlUser = async (samlData) => {
   console.log('\n================================');
@@ -110,10 +112,13 @@ exports.findOrCreateSamlUser = async (samlData) => {
     const userDoc = await db.collection('users').doc(samlData.email).get();
 
     if (userDoc.exists) {
+      // ===================================
+      // EXISTING USER - Update SAML info
+      // ===================================
       const userData = userDoc.data();
       console.log('✅ Existing user found');
+      console.log('Current auth type:', userData.authType || 'email');
       
-      // Update SAML info if needed
       const updates = {
         samlNameID: samlData.samlNameID,
         samlSessionIndex: samlData.samlSessionIndex,
@@ -121,31 +126,47 @@ exports.findOrCreateSamlUser = async (samlData) => {
         updatedAt: new Date().toISOString(),
       };
       
-      // Update firstName/lastName if they weren't set before
+      // Update name fields if not already set
       if (samlData.firstName && !userData.firstName) {
         updates.firstName = samlData.firstName;
       }
       if (samlData.lastName && !userData.lastName) {
         updates.lastName = samlData.lastName;
       }
+      if (samlData.displayName && !userData.displayName) {
+        updates.displayName = samlData.displayName;
+      }
+
+      // Mark as hybrid auth if user previously used email/password
+      if (userData.password && !userData.authType) {
+        updates.authType = 'hybrid'; // User can login with both methods
+        console.log('⚠️ Converting email user to hybrid (email + SAML)');
+      }
 
       await db.collection('users').doc(samlData.email).update(updates);
+
+      console.log('✅ User updated with SAML info');
+      console.log('Updates applied:', Object.keys(updates));
 
       return {
         id: userDoc.id,
         ...userData,
-        ...updates
+        ...updates,
       };
     } else {
-      // Create new user
+      // ===================================
+      // NEW USER - Create SAML user
+      // ===================================
       console.log('📝 Creating new SAML user');
+      
       const newUser = {
         email: samlData.email,
         firstName: samlData.firstName || '',
         lastName: samlData.lastName || '',
+        displayName: samlData.displayName || '',
         samlNameID: samlData.samlNameID,
         samlSessionIndex: samlData.samlSessionIndex,
-        authType: 'saml', // Mark as SAML user
+        authType: 'saml', // SAML-only user (no password)
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         lastSamlLogin: new Date().toISOString(),
@@ -153,29 +174,53 @@ exports.findOrCreateSamlUser = async (samlData) => {
 
       await db.collection('users').doc(samlData.email).set(newUser);
 
-      console.log('✅ SAML user created');
+      console.log('✅ SAML user created successfully');
+      console.log('User data:', JSON.stringify({
+        ...newUser,
+        samlSessionIndex: '***hidden***'
+      }, null, 2));
+      console.log('================================\n');
+
       return {
         id: samlData.email,
-        ...newUser
+        ...newUser,
       };
     }
   } catch (error) {
-    console.error('❌ Error in findOrCreateSamlUser:', error);
+    console.error('\n================================');
+    console.error('❌ Error in findOrCreateSamlUser');
+    console.error('Error:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('================================\n');
     throw error;
   }
 };
 
 /**
- * Update user's SAML session info (for logout)
+ * Update user's SAML session information
+ * Used during SAML logout
  */
 exports.updateSamlSession = async (email, sessionData) => {
+  console.log('\n================================');
+  console.log('🔄 updateSamlSession (Firestore)');
+  console.log('================================');
+  console.log('Email:', email);
+
   try {
-    await db.collection('users').doc(email).update({
-      samlSessionIndex: sessionData.sessionIndex,
+    const updates = {
+      samlSessionIndex: sessionData.sessionIndex || null,
       updatedAt: new Date().toISOString(),
-    });
+    };
+
+    await db.collection('users').doc(email).update(updates);
+
+    console.log('✅ SAML session updated');
+    console.log('================================\n');
   } catch (error) {
-    console.error('❌ Error updating SAML session:', error);
+    console.error('\n================================');
+    console.error('❌ Error updating SAML session');
+    console.error('Error:', error.message);
+    console.error('================================\n');
     throw error;
   }
 };
