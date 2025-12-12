@@ -107,38 +107,60 @@ exports.login = async (email, password) => {
   }
 };
 
+
+
+
+
+
 /**
  * Handle SAML authentication
- * Returns JWT token just like regular login
+ * Creates/updates user in Firestore and generates JWT
+ * @param {Object} samlData - User data from SAML assertion
+ * @returns {Object} - { token, user }
  */
 exports.samlLogin = async (samlData) => {
   console.log('================================');
-  console.log('🔐 authService.samlLogin called');
+  console.log('🔐 authService.samlLogin');
+  console.log('================================');
   console.log('Email:', samlData.email);
+  console.log('First Name:', samlData.firstName || '(not provided)');
+  console.log('Last Name:', samlData.lastName || '(not provided)');
+  console.log('Display Name:', samlData.displayName || '(not provided)');
 
   try {
-    // Find or create user
+    // Find or create user in Firestore
+    console.log('Finding or creating SAML user in Firestore...');
     const user = await authRepository.findOrCreateSamlUser(samlData);
     
-    console.log('Generating JWT token for SAML user...');
+    console.log('✅ User found/created:');
+    console.log('- ID:', user.id);
+    console.log('- Email:', user.email);
+    console.log('- Auth Type:', user.authType);
     
-    // Generate same JWT token format as regular login
+    // Generate JWT token (same format as email login)
+    console.log('Generating JWT token...');
     const token = jwt.sign(
       { 
         userId: user.id, 
         email: user.email,
-        authType: 'saml' // Optional: track auth method
+        authType: user.authType || 'saml',
       },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    console.log('✅ SAML login successful, token generated');
+    console.log('✅ JWT token generated');
+    console.log('Token length:', token.length);
+    console.log('Token preview:', token.substring(0, 20) + '...');
     console.log('================================');
     
     return { token, user };
   } catch (error) {
-    console.error('❌ authService.samlLogin ERROR:', error);
+    console.error('================================');
+    console.error('❌ authService.samlLogin ERROR');
+    console.error('Error:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('================================');
     throw error;
   }
 };
