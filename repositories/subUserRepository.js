@@ -75,6 +75,44 @@ exports.createSubUser = async (parentEmail, subUserData) => {
 /**
  * List all sub-users for a parent
  */
+// exports.listSubUsers = async (parentEmail) => {
+//   console.log('\n================================');
+//   console.log('📋 listSubUsers');
+//   console.log('================================');
+//   console.log('Parent:', parentEmail);
+  
+//   try {
+//     const snapshot = await db.collection('subUsers')
+//       .where('parentUser', '==', parentEmail)
+//       .orderBy('createdAt', 'desc')
+//       .get();
+    
+//     const subUsers = [];
+//     snapshot.forEach(doc => {
+//       const data = doc.data();
+//       subUsers.push({
+//         id: doc.id,
+//         email: data.email,
+//         name: data.name,
+//         status: data.status,
+//         createdAt: data.createdAt,
+//         lastLogin: data.lastLogin
+//       });
+//     });
+    
+//     console.log(`✅ Found ${subUsers.length} sub-users`);
+//     console.log('================================\n');
+    
+//     return subUsers;
+    
+//   } catch (error) {
+//     console.error('❌ Error listing sub-users:', error.message);
+//     throw error;
+//   }
+// };
+/**
+ * List all sub-users for a parent
+ */
 exports.listSubUsers = async (parentEmail) => {
   console.log('\n================================');
   console.log('📋 listSubUsers');
@@ -82,10 +120,10 @@ exports.listSubUsers = async (parentEmail) => {
   console.log('Parent:', parentEmail);
   
   try {
+    // Remove .orderBy() to avoid index requirement
     const snapshot = await db.collection('subUsers')
       .where('parentUser', '==', parentEmail)
-      .orderBy('createdAt', 'desc')
-      .get();
+      .get(); // ← No .orderBy() here
     
     const subUsers = [];
     snapshot.forEach(doc => {
@@ -98,6 +136,13 @@ exports.listSubUsers = async (parentEmail) => {
         createdAt: data.createdAt,
         lastLogin: data.lastLogin
       });
+    });
+    
+    // Sort in JavaScript instead (works without index)
+    subUsers.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA; // Newest first
     });
     
     console.log(`✅ Found ${subUsers.length} sub-users`);
