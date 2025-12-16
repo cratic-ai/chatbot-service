@@ -1,14 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { isAuthenticated } = require('../middlewares/auth');
+const { authenticate, isAdmin } = require('../middlewares/authMiddleware');
 const subUserController = require('../controllers/subUserController');
 
 console.log('================================');
 console.log('👥 subUserRoutes.js LOADING');
 console.log('================================\n');
 
-// All routes require authentication and admin privileges
-router.use(isAuthenticated);
+// All routes require authentication AND admin privileges
+router.use(authenticate);
+router.use(isAdmin);
 
 // Get statistics
 router.get('/stats', subUserController.getSubUserStats);
