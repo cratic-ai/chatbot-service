@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/authRoutes');
 const earlyAccessRoutes = require('./routes/earlyaccessRoutes');
 const healthRoutes = require('./routes/health');
+const subUserRoutes = require('./routes/subUserRoutes')
 const { apiLimiter } = require('./utils/ratelimiter');
 const socketManager = require('./socket/socketDocument');
 const uploadQueue = require('./queue/uploadQueue');
@@ -158,6 +159,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/documents', require('./routes/documentRoutes'));
 app.use('/api/gemini', require('./routes/chatgeminiRoutes'));
+app.use('/api/sub-users', subUserRoutes); 
 
 // ============================================
 // Error Handler Middleware
