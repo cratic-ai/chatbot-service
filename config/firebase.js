@@ -61,11 +61,13 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   storageBucket: 'craticai-file-uploads.appspot.com'
 });
+
+
+const db = admin.firestore();
  db.settings({
   databaseId: 'craticaifirestore' ,
-       storageBucket: 'craticai-file-uploads'
  });
-const db = admin.firestore();
+
 const bucket = admin.storage().bucket();
 
 console.log('✅ Firebase Admin initialized');
