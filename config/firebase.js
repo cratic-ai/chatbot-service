@@ -43,34 +43,39 @@
 require('dotenv').config();
 const admin = require('firebase-admin');
 
-let serviceAccount;
+// Check if Firebase app is already initialized
+if (!admin.apps.length) {
+  let serviceAccount;
+  
+  try {
+    serviceAccount = require('../../firebase-service-account.json');
+    console.log('✅ Using service account file');
+  } catch (error) {
+    console.log('⚠️ Using environment variables');
+    serviceAccount = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+    };
+  }
 
-try {
-  serviceAccount = require('../../firebase-service-account.json');
-  console.log('✅ Using service account file');
-} catch (error) {
-  console.log('⚠️ Using environment variables');
-  serviceAccount = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-  };
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: 'craticai-file-uploads.appspot.com'
+  });
+
+  console.log('✅ Firebase Admin initialized');
+} else {
+  console.log('✅ Firebase Admin already initialized');
 }
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'craticai-file-uploads.appspot.com'
-});
-
-
 const db = admin.firestore();
- db.settings({
-  databaseId: 'craticaifirestore' ,
- });
+db.settings({
+  databaseId: 'craticaifirestore',
+});
 
 const bucket = admin.storage().bucket();
 
-console.log('✅ Firebase Admin initialized');
 console.log('✅ Firestore and Storage ready');
 
 module.exports = { admin, db, bucket };
