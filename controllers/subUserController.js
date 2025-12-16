@@ -1,5 +1,5 @@
 const subUserRepository = require('../repositories/subUserRepository');
-const bcrypt = require('bcrypts');
+const bcrypt = require('bcrypjs');
 
 console.log('================================');
 console.log('👥 subUserController.js LOADING');
