@@ -322,38 +322,99 @@ exports.uploadDocument = async (userEmail, file, metadata) => {
 /**
  * List all documents for user
  */
+// exports.listUserDocuments = async (userEmail) => {
+//   console.log('\n================================');
+//   console.log('📋 listUserDocuments');
+//   console.log('================================');
+//   console.log('User:', userEmail);
+
+//   try {
+//     const snapshot = await db.collection('users')
+//       .doc(userEmail)
+//       .collection('documents')
+//       .where('status', '==', 'active')
+//       .orderBy('uploadedAt', 'desc')
+//       .get();
+
+//     const documents = [];
+//     snapshot.forEach(doc => {
+//       documents.push({
+//         id: doc.id,
+//         ...doc.data()
+//       });
+//     });
+
+//     console.log(`✅ Found ${documents.length} documents`);
+//     console.log('================================\n');
+
+//     return documents;
+//   } catch (error) {
+//     console.error('❌ Error listing documents:', error);
+//     throw error;
+//   }
+// };
+
+/**
+ * List all documents for a user
+ */
 exports.listUserDocuments = async (userEmail) => {
   console.log('\n================================');
   console.log('📋 listUserDocuments');
   console.log('================================');
   console.log('User:', userEmail);
-
+  
   try {
+    // REMOVE .orderBy() to avoid index requirement
     const snapshot = await db.collection('users')
       .doc(userEmail)
       .collection('documents')
       .where('status', '==', 'active')
-      .orderBy('uploadedAt', 'desc')
-      .get();
-
+      .get(); // ← No .orderBy() here!
+    
     const documents = [];
     snapshot.forEach(doc => {
+      const data = doc.data();
+      
+      // Generate fresh signed URL (7-day validity)
+      const file = bucket.file(data.gcsPath);
+      const [signedUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+      
       documents.push({
         id: doc.id,
-        ...doc.data()
+        fileName: data.fileName,
+        gcsPath: data.gcsPath,
+        gcsSignedUrl: signedUrl, // Fresh URL
+        mimeType: data.mimeType,
+        fileSize: data.fileSize,
+        version: data.version,
+        notes: data.notes,
+        department: data.department,
+        documentType: data.documentType,
+        uploadedAt: data.uploadedAt,
+        status: data.status
       });
     });
-
+    
+    // Sort in JavaScript instead (newest first)
+    documents.sort((a, b) => {
+      const dateA = new Date(a.uploadedAt || 0);
+      const dateB = new Date(b.uploadedAt || 0);
+      return dateB - dateA; // Descending (newest first)
+    });
+    
     console.log(`✅ Found ${documents.length} documents`);
     console.log('================================\n');
-
+    
     return documents;
+    
   } catch (error) {
-    console.error('❌ Error listing documents:', error);
+    console.error('❌ Error listing documents:', error.message);
     throw error;
   }
 };
-
 /**
  * Get single document
  */
