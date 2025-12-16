@@ -599,7 +599,8 @@ exports.createUser = async (email, password) => {
   console.log('📝 createUser (Admin)');
   console.log('================================');
   console.log('Email:', email);
-  
+
+    
   try {
     const userData = {
       email,
@@ -611,7 +612,7 @@ exports.createUser = async (email, password) => {
       documentCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      ...additionalData
+   
     };
     
     await db.collection('users').doc(email).set(userData);
