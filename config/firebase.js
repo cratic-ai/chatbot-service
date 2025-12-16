@@ -1,13 +1,6 @@
 require('dotenv').config();
 
 const admin = require('firebase-admin');
-
-
-
-console.log('================================');
-console.log('🔥 Initializing Firebase Admin SDK');
-console.log('================================');
-
 // Initialize Firebase Admin
 // Option 1: Using service account key file (recommended for development)
 // Download your service account key from Firebase Console > Project Settings > Service Accounts
@@ -39,10 +32,11 @@ try {
 }
 const db = admin.firestore();
 db.settings({
-  databaseId: 'craticaifirestore' 
+  databaseId: 'craticaifirestore' ,
+      storageBucket: 'craticai-file-uploads'
 });
-
+const bucket = admin.storage().bucket();
 console.log('✅ Firestore database instance created');
 console.log('================================\n');
 
-module.exports = { admin, db };
+module.exports = { admin, db, bucket };
