@@ -594,7 +594,7 @@ exports.findUserByEmail = async (email) => {
 /**
  * Create new admin user
  */
-exports.createUser = async (email, password, additionalData = {}) => {
+exports.createUser = async (email, password) => {
   console.log('\n================================');
   console.log('📝 createUser (Admin)');
   console.log('================================');
