@@ -193,7 +193,7 @@ exports.signup = async (req, res) => {
   console.log('================================');
   
   try {
-    const { email, password, name } = req.body;
+    const { email, password} = req.body;
     
     if (!email || !password) {
       return res.status(400).json({
@@ -238,7 +238,6 @@ exports.signup = async (req, res) => {
       user: {
         email: user.email,
         isAdmin: true,
-        name: user.name || email.split('@')[0]
       }
     });
     
@@ -282,7 +281,7 @@ exports.getCurrentUser = async (req, res) => {
       user: {
         email: user.email,
         isAdmin: user.isAdmin,
-        name: user.name || email.split('@')[0],
+
         parentUser: user.parentUser || null,
         subUserCount: user.subUserCount || 0,
         documentCount: user.documentCount || 0
