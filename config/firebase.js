@@ -61,7 +61,10 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   storageBucket: 'craticai-file-uploads.appspot.com'
 });
-
+ db.settings({
+  databaseId: 'craticaifirestore' ,
+       storageBucket: 'craticai-file-uploads'
+ });
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
