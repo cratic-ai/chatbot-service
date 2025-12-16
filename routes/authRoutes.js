@@ -12,7 +12,7 @@ router.post('/signup', authController.signup);
 router.post('/login', authController.login);
 
 // Protected routes
-router.get('/me', authenticate, authController.getCurrentUser);
+router.get('/verify', authenticate, authController.getCurrentUser);
 router.post('/logout', authenticate, logout);
 
 // Debug routes (optional - remove in production)
