@@ -1,101 +1,101 @@
-const { db } = require('../config/firebase');
+// const { db } = require('../config/firebase');
 
-console.log('================================');
-console.log('🔥 authRepository.js (Firestore) LOADING');
-console.log('================================');
-console.log('Firestore client available:', !!db);
-console.log('================================\n');
+// console.log('================================');
+// console.log('🔥 authRepository.js (Firestore) LOADING');
+// console.log('================================');
+// console.log('Firestore client available:', !!db);
+// console.log('================================\n');
 
-/**
- * Find user by email in Firestore
- * Collection: users
- * Document ID: email (for easy lookup)
- */
-exports.findUserByEmail = async (email) => {
-  console.log('\n================================');
-  console.log('🔍 findUserByEmail (Firestore)');
-  console.log('================================');
-  console.log('Email:', email);
+// /**
+//  * Find user by email in Firestore
+//  * Collection: users
+//  * Document ID: email (for easy lookup)
+//  */
+// exports.findUserByEmail = async (email) => {
+//   console.log('\n================================');
+//   console.log('🔍 findUserByEmail (Firestore)');
+//   console.log('================================');
+//   console.log('Email:', email);
 
-  try {
-    // Get document with email as ID
-    const userDoc = await db.collection('users').doc(email).get();
+//   try {
+//     // Get document with email as ID
+//     const userDoc = await db.collection('users').doc(email).get();
 
-    if (!userDoc.exists) {
-      console.log('User not found (OK for signup)');
-      console.log('================================\n');
-      return null;
-    }
+//     if (!userDoc.exists) {
+//       console.log('User not found (OK for signup)');
+//       console.log('================================\n');
+//       return null;
+//     }
 
-    const userData = userDoc.data();
-    console.log('✅ User found in Firestore');
-    console.log('User data:', JSON.stringify({ ...userData, password: '***hidden***' }, null, 2));
-    console.log('================================\n');
+//     const userData = userDoc.data();
+//     console.log('✅ User found in Firestore');
+//     console.log('User data:', JSON.stringify({ ...userData, password: '***hidden***' }, null, 2));
+//     console.log('================================\n');
 
-    // Return user with id field
-    return {
-      id: userDoc.id,
-      ...userData
-    };
+//     // Return user with id field
+//     return {
+//       id: userDoc.id,
+//       ...userData
+//     };
 
-  } catch (error) {
-    console.error('\n================================');
-    console.error('❌ Error in findUserByEmail');
-    console.error('Error:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('================================\n');
-    throw error;
-  }
-};
+//   } catch (error) {
+//     console.error('\n================================');
+//     console.error('❌ Error in findUserByEmail');
+//     console.error('Error:', error.message);
+//     console.error('Error stack:', error.stack);
+//     console.error('================================\n');
+//     throw error;
+//   }
+// };
 
-/**
- * Create new user in Firestore
- * Uses email as document ID for easy lookup
- */
-exports.createUser = async (email, password) => {
-  console.log('\n================================');
-  console.log('📝 createUser (Firestore)');
-  console.log('================================');
-  console.log('Email:', email);
-  console.log('Password provided:', !!password);
+// /**
+//  * Create new user in Firestore
+//  * Uses email as document ID for easy lookup
+//  */
+// exports.createUser = async (email, password) => {
+//   console.log('\n================================');
+//   console.log('📝 createUser (Firestore)');
+//   console.log('================================');
+//   console.log('Email:', email);
+//   console.log('Password provided:', !!password);
 
-  try {
-    const userData = {
-      email,
-      password,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+//   try {
+//     const userData = {
+//       email,
+//       password,
+//       createdAt: new Date().toISOString(),
+//       updatedAt: new Date().toISOString()
+//     };
 
-    // Use email as document ID
-    await db.collection('users').doc(email).set(userData);
+//     // Use email as document ID
+//     await db.collection('users').doc(email).set(userData);
 
-    console.log('✅ User created in Firestore');
-    console.log('================================\n');
+//     console.log('✅ User created in Firestore');
+//     console.log('================================\n');
 
-    return {
-      id: email,
-      ...userData
-    };
+//     return {
+//       id: email,
+//       ...userData
+//     };
 
-  } catch (error) {
-    console.error('\n================================');
-    console.error('❌ Error in createUser');
-    console.error('Error:', error.message);
+//   } catch (error) {
+//     console.error('\n================================');
+//     console.error('❌ Error in createUser');
+//     console.error('Error:', error.message);
     
-    // Handle duplicate user error
-    if (error.code === 6) { // ALREADY_EXISTS
-      console.error('User already exists');
-      const customError = new Error('User already exists');
-      customError.status = 400;
-      throw customError;
-    }
+//     // Handle duplicate user error
+//     if (error.code === 6) { // ALREADY_EXISTS
+//       console.error('User already exists');
+//       const customError = new Error('User already exists');
+//       customError.status = 400;
+//       throw customError;
+//     }
     
-    console.error('Error stack:', error.stack);
-    console.error('================================\n');
-    throw error;
-  }
-};
+//     console.error('Error stack:', error.stack);
+//     console.error('================================\n');
+//     throw error;
+//   }
+// };
 
 /**
  * Find or create user from SAML authentication
@@ -532,3 +532,164 @@ exports.createUser = async (email, password) => {
 //   }
 // };
 
+const { db } = require('../config/firebase');
+
+console.log('================================');
+console.log('🔥 authRepository.js (Firestore) LOADING');
+console.log('================================');
+console.log('Firestore client available:', !!db);
+console.log('================================\n');
+
+/**
+ * Find user by email - checks both admin users and sub-users
+ */
+exports.findUserByEmail = async (email) => {
+  console.log('\n================================');
+  console.log('🔍 findUserByEmail (Firestore)');
+  console.log('================================');
+  console.log('Email:', email);
+  
+  try {
+    // First, check in main users collection (Admin users)
+    const adminUserDoc = await db.collection('users').doc(email).get();
+    
+    if (adminUserDoc.exists) {
+      const userData = adminUserDoc.data();
+      console.log('✅ Admin user found');
+      console.log('================================\n');
+      
+      return {
+        id: adminUserDoc.id,
+        ...userData,
+        isAdmin: true
+      };
+    }
+    
+    // Check subUsers collection
+    const subUserDoc = await db.collection('subUsers').doc(email).get();
+    
+    if (subUserDoc.exists) {
+      const userData = subUserDoc.data();
+      console.log('✅ Sub-user found');
+      console.log('Parent user:', userData.parentUser);
+      console.log('================================\n');
+      
+      return {
+        id: subUserDoc.id,
+        ...userData,
+        isAdmin: false
+      };
+    }
+    
+    console.log('❌ User not found');
+    console.log('================================\n');
+    return null;
+    
+  } catch (error) {
+    console.error('❌ Error in findUserByEmail:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * Create new admin user
+ */
+exports.createUser = async (email, password, additionalData = {}) => {
+  console.log('\n================================');
+  console.log('📝 createUser (Admin)');
+  console.log('================================');
+  console.log('Email:', email);
+  
+  try {
+    const userData = {
+      email,
+      password,
+      isAdmin: true,
+      subUsers: [],
+      subUserCount: 0,
+      uploadedDocuments: [],
+      documentCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...additionalData
+    };
+    
+    await db.collection('users').doc(email).set(userData);
+    
+    console.log('✅ Admin user created');
+    console.log('================================\n');
+    
+    return {
+      id: email,
+      ...userData
+    };
+    
+  } catch (error) {
+    console.error('❌ Error in createUser:', error.message);
+    
+    if (error.code === 6) {
+      const customError = new Error('User already exists');
+      customError.status = 400;
+      throw customError;
+    }
+    
+    throw error;
+  }
+};
+
+/**
+ * Update user's last login
+ */
+exports.updateLastLogin = async (email, isAdmin) => {
+  console.log('\n================================');
+  console.log('🔄 updateLastLogin');
+  console.log('================================');
+  
+  try {
+    const collection = isAdmin ? 'users' : 'subUsers';
+    
+    await db.collection(collection).doc(email).update({
+      lastLogin: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    
+    console.log('✅ Last login updated');
+    console.log('================================\n');
+    
+  } catch (error) {
+    console.error('❌ Error updating last login:', error.message);
+    // Don't throw - this is not critical
+  }
+};
+
+/**
+ * Get user statistics (for admin dashboard)
+ */
+exports.getUserStats = async (email) => {
+  console.log('\n================================');
+  console.log('📊 getUserStats');
+  console.log('================================');
+  
+  try {
+    const userDoc = await db.collection('users').doc(email).get();
+    
+    if (!userDoc.exists) {
+      throw new Error('User not found');
+    }
+    
+    const userData = userDoc.data();
+    
+    console.log('✅ Stats retrieved');
+    console.log('================================\n');
+    
+    return {
+      subUserCount: userData.subUserCount || 0,
+      documentCount: userData.documentCount || 0,
+      activeSubUsers: userData.subUsers?.filter(u => u.status === 'active').length || 0
+    };
+    
+  } catch (error) {
+    console.error('❌ Error getting stats:', error.message);
+    throw error;
+  }
+};
