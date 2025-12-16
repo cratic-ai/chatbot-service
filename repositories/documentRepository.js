@@ -357,52 +357,64 @@ exports.uploadDocument = async (userEmail, file, metadata) => {
 /**
  * List all documents for a user
  */
-exports.listUserDocuments = async (userEmail) => {
+
+/**
+ * List all active documents for a user
+ */
+exports.listUserDocuments = async (userEmail) => {  // ← ADD 'async' HERE!
   console.log('\n================================');
   console.log('📋 listUserDocuments');
   console.log('================================');
   console.log('User:', userEmail);
   
   try {
-    // REMOVE .orderBy() to avoid index requirement
+    // Query without orderBy to avoid index requirement
     const snapshot = await db.collection('users')
       .doc(userEmail)
       .collection('documents')
       .where('status', '==', 'active')
-      .get(); // ← No .orderBy() here!
+      .get();
     
     const documents = [];
-    snapshot.forEach(doc => {
+    
+    // Process each document with for...of loop
+    for (const doc of snapshot.docs) {
       const data = doc.data();
       
-      // Generate fresh signed URL (7-day validity)
-      const file = bucket.file(data.gcsPath);
-      const [signedUrl] = await file.getSignedUrl({
-        action: 'read',
-        expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
-      
-      documents.push({
-        id: doc.id,
-        fileName: data.fileName,
-        gcsPath: data.gcsPath,
-        gcsSignedUrl: signedUrl, // Fresh URL
-        mimeType: data.mimeType,
-        fileSize: data.fileSize,
-        version: data.version,
-        notes: data.notes,
-        department: data.department,
-        documentType: data.documentType,
-        uploadedAt: data.uploadedAt,
-        status: data.status
-      });
-    });
+      try {
+        // Generate fresh signed URL (7-day validity)
+        const file = bucket.file(data.gcsPath);
+        const [signedUrl] = await file.getSignedUrl({
+          action: 'read',
+          expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+        
+        documents.push({
+          id: doc.id,
+          fileName: data.fileName,
+          gcsPath: data.gcsPath,
+          gcsSignedUrl: signedUrl,
+          gcsPublicUrl: data.gcsPublicUrl || null,
+          mimeType: data.mimeType,
+          fileSize: data.fileSize,
+          version: data.version,
+          notes: data.notes,
+          department: data.department,
+          documentType: data.documentType,
+          uploadedAt: data.uploadedAt,
+          status: data.status
+        });
+      } catch (urlError) {
+        console.error(`⚠️ Error generating signed URL for ${data.fileName}:`, urlError.message);
+        // Skip this document if URL generation fails
+      }
+    }
     
-    // Sort in JavaScript instead (newest first)
+    // Sort in JavaScript (newest first)
     documents.sort((a, b) => {
       const dateA = new Date(a.uploadedAt || 0);
       const dateB = new Date(b.uploadedAt || 0);
-      return dateB - dateA; // Descending (newest first)
+      return dateB - dateA;
     });
     
     console.log(`✅ Found ${documents.length} documents`);
@@ -411,7 +423,8 @@ exports.listUserDocuments = async (userEmail) => {
     return documents;
     
   } catch (error) {
-    console.error('❌ Error listing documents:', error.message);
+    console.error('❌ Error listing documents:', error);
+    console.error('Stack:', error.stack);
     throw error;
   }
 };
