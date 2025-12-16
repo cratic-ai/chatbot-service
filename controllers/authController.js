@@ -219,7 +219,7 @@ exports.signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     
     // Create admin user
-    const user = await authRepository.createUser(email, hashedPassword, { name });
+    const user = await authRepository.createUser(email, hashedPassword);
     
     // Generate token
     const token = jwt.sign(
