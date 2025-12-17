@@ -270,7 +270,7 @@ exports.uploadDocument = async (userEmail, file, metadata) => {
     });
 
     console.log('✅ File uploaded to GCS');
-await fileUpload.makePublic();
+
     // Generate signed URL (7 days validity)
     const [signedUrl] = await fileUpload.getSignedUrl({
       action: 'read',
