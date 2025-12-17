@@ -61,7 +61,7 @@ if (!admin.apps.length) {
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    storageBucket: 'craticai-file-uploads.appspot.com'
+    storageBucket: 'craticai-file-uploads'
   });
 
   console.log('✅ Firebase Admin initialized');
