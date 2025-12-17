@@ -59,6 +59,6 @@ router.get('/:id/file', documentController.getDocumentFile);
 
 // Delete document (admin only)
 router.delete('/:id', isAdmin, documentController.deleteDocument);
-
+router.get('/:id/download-blob', documentController.downloadDocumentBlob);
 module.exports = router;
 
