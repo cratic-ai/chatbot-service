@@ -490,36 +490,67 @@ exports.listDocuments = async (req, res) => {
  * Get single document
  * GET /api/documents/:id
  */
+// exports.getDocument = async (req, res) => {
+//   console.log('\n================================');
+//   console.log('📄 GET /api/documents/:id');
+//   console.log('================================');
+
+//   try {
+//     const userEmail = req.user.email;
+//     const documentId = req.params.id;
+
+//     const document = await documentRepository.getDocument(userEmail, documentId);
+
+//     console.log('✅ Document retrieved');
+//     console.log('================================\n');
+
+//     res.json({
+//       success: true,
+//       document: document
+//     });
+
+//   } catch (error) {
+//     console.error('❌ Get document error:', error.message);
+    
+//     const status = error.message === 'Document not found' ? 404 : 500;
+//     res.status(status).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// };
 exports.getDocument = async (req, res) => {
   console.log('\n================================');
-  console.log('📄 GET /api/documents/:id');
+  console.log('📄 getDocument');
   console.log('================================');
+  console.log('User:', req.user.email);
+  console.log('Document ID:', req.params.id);
 
   try {
     const userEmail = req.user.email;
     const documentId = req.params.id;
-
+    
     const document = await documentRepository.getDocument(userEmail, documentId);
 
-    console.log('✅ Document retrieved');
+    if (!document) {
+      console.error('❌ Document not found');
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    console.log('✅ Document found:', document.fileName);
     console.log('================================\n');
 
-    res.json({
-      success: true,
-      document: document
-    });
-
-  } catch (error) {
-    console.error('❌ Get document error:', error.message);
+    // ✅ Return document directly in consistent format
+    res.json(document);
     
-    const status = error.message === 'Document not found' ? 404 : 500;
-    res.status(status).json({
-      success: false,
-      error: error.message
+  } catch (error) {
+    console.error('❌ Error getting document:', error);
+    res.status(500).json({ 
+      message: 'Failed to get document',
+      error: error.message 
     });
   }
 };
-
 /**
  * Delete document
  * DELETE /api/documents/:id
