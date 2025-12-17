@@ -365,126 +365,126 @@
 //   }
 // };
 
-const documentRepository = require('../repositories/documentRepository');
+// const documentRepository = require('../repositories/documentRepository');
 
-console.log('================================');
-console.log('📄 documentController.js LOADING');
-console.log('================================\n');
+// console.log('================================');
+// console.log('📄 documentController.js LOADING');
+// console.log('================================\n');
 
-/**
- * Upload document to GCS only
- * POST /api/documents/upload
- */
-exports.uploadDocument = async (req, res) => {
-  console.log('\n================================');
-  console.log('📤 POST /api/documents/upload');
-  console.log('================================');
+// /**
+//  * Upload document to GCS only
+//  * POST /api/documents/upload
+//  */
+// exports.uploadDocument = async (req, res) => {
+//   console.log('\n================================');
+//   console.log('📤 POST /api/documents/upload');
+//   console.log('================================');
 
-  try {
-    const userEmail = req.user.email;
-    const file = req.file;
+//   try {
+//     const userEmail = req.user.email;
+//     const file = req.file;
     
-    const metadata = {
-      version: req.body.version,
-      notes: req.body.notes || '',
-      department: req.body.department || '',
-      documentType: req.body.documentType || ''
-    };
+//     const metadata = {
+//       version: req.body.version,
+//       notes: req.body.notes || '',
+//       department: req.body.department || '',
+//       documentType: req.body.documentType || ''
+//     };
 
-    console.log('User:', userEmail);
-    console.log('File:', file?.originalname);
+//     console.log('User:', userEmail);
+//     console.log('File:', file?.originalname);
 
-    if (!file) {
-      return res.status(400).json({
-        success: false,
-        error: 'No file provided'
-      });
-    }
+//     if (!file) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'No file provided'
+//       });
+//     }
 
-    if (!metadata.version) {
-      return res.status(400).json({
-        success: false,
-        error: 'Version number is required'
-      });
-    }
+//     if (!metadata.version) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Version number is required'
+//       });
+//     }
 
-    // Upload to GCS and save to Firestore
-    const document = await documentRepository.uploadDocument(userEmail, file, metadata);
+//     // Upload to GCS and save to Firestore
+//     const document = await documentRepository.uploadDocument(userEmail, file, metadata);
 
-    console.log('✅ Document uploaded successfully');
-    console.log('================================\n');
+//     console.log('✅ Document uploaded successfully');
+//     console.log('================================\n');
 
-    res.status(201).json({
-      success: true,
-      message: 'Document uploaded successfully',
-      document: {
-        id: document.id,
-        fileName: document.fileName,
-        gcsUrl: document.gcsSignedUrl,
-        version: document.version,
-        department: document.department,
-        documentType: document.documentType,
-        notes: document.notes,
-        fileSize: document.fileSize,
-        mimeType: document.mimeType,
-        uploadedAt: document.uploadedAt
-      }
-    });
+//     res.status(201).json({
+//       success: true,
+//       message: 'Document uploaded successfully',
+//       document: {
+//         id: document.id,
+//         fileName: document.fileName,
+//         gcsUrl: document.gcsSignedUrl,
+//         version: document.version,
+//         department: document.department,
+//         documentType: document.documentType,
+//         notes: document.notes,
+//         fileSize: document.fileSize,
+//         mimeType: document.mimeType,
+//         uploadedAt: document.uploadedAt
+//       }
+//     });
 
-  } catch (error) {
-    console.error('❌ Upload error:', error.message);
+//   } catch (error) {
+//     console.error('❌ Upload error:', error.message);
     
-    res.status(500).json({
-      success: false,
-      error: 'Failed to upload document',
-      message: error.message
-    });
-  }
-};
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to upload document',
+//       message: error.message
+//     });
+//   }
+// };
 
-/**
- * List all documents
- * GET /api/documents
- */
-exports.listDocuments = async (req, res) => {
-  console.log('\n================================');
-  console.log('📋 GET /api/documents');
-  console.log('================================');
+// /**
+//  * List all documents
+//  * GET /api/documents
+//  */
+// exports.listDocuments = async (req, res) => {
+//   console.log('\n================================');
+//   console.log('📋 GET /api/documents');
+//   console.log('================================');
 
-  try {
-    const userEmail = req.user.email;
-    const documents = await documentRepository.listUserDocuments(userEmail);
+//   try {
+//     const userEmail = req.user.email;
+//     const documents = await documentRepository.listUserDocuments(userEmail);
 
-    console.log(`✅ Returning ${documents.length} documents`);
-    console.log('================================\n');
+//     console.log(`✅ Returning ${documents.length} documents`);
+//     console.log('================================\n');
 
-    res.json({
-      success: true,
-      count: documents.length,
-      documents: documents.map(doc => ({
-        id: doc.id,
-        fileName: doc.fileName,
-        version: doc.version,
-        department: doc.department,
-        documentType: doc.documentType,
-        notes: doc.notes,
-        fileSize: doc.fileSize,
-        mimeType: doc.mimeType,
-        uploadedAt: doc.uploadedAt,
-        gcsUrl: doc.gcsSignedUrl
-      }))
-    });
+//     res.json({
+//       success: true,
+//       count: documents.length,
+//       documents: documents.map(doc => ({
+//         id: doc.id,
+//         fileName: doc.fileName,
+//         version: doc.version,
+//         department: doc.department,
+//         documentType: doc.documentType,
+//         notes: doc.notes,
+//         fileSize: doc.fileSize,
+//         mimeType: doc.mimeType,
+//         uploadedAt: doc.uploadedAt,
+//         gcsUrl: doc.gcsSignedUrl
+//       }))
+//     });
 
-  } catch (error) {
-    console.error('❌ List error:', error.message);
+//   } catch (error) {
+//     console.error('❌ List error:', error.message);
     
-    res.status(500).json({
-      success: false,
-      error: 'Failed to list documents',
-      message: error.message
-    });
-  }
-};
+//     res.status(500).json({
+//       success: false,
+//       error: 'Failed to list documents',
+//       message: error.message
+//     });
+//   }
+// };
 
 /**
  * Get single document
@@ -519,6 +519,281 @@ exports.listDocuments = async (req, res) => {
 //     });
 //   }
 // };
+// exports.getDocument = async (req, res) => {
+//   console.log('\n================================');
+//   console.log('📄 getDocument');
+//   console.log('================================');
+//   console.log('User:', req.user.email);
+//   console.log('Document ID:', req.params.id);
+
+//   try {
+//     const userEmail = req.user.email;
+//     const documentId = req.params.id;
+    
+//     const document = await documentRepository.getDocument(userEmail, documentId);
+
+//     if (!document) {
+//       console.error('❌ Document not found');
+//       return res.status(404).json({ message: 'Document not found' });
+//     }
+
+//     console.log('✅ Document found:', document.fileName);
+//     console.log('================================\n');
+
+//     // ✅ Return document directly in consistent format
+//     res.json(document);
+    
+//   } catch (error) {
+//     console.error('❌ Error getting document:', error);
+//     res.status(500).json({ 
+//       message: 'Failed to get document',
+//       error: error.message 
+//     });
+//   }
+// };
+// /**
+//  * Delete document
+//  * DELETE /api/documents/:id
+//  */
+// exports.deleteDocument = async (req, res) => {
+//   console.log('\n================================');
+//   console.log('🗑️  DELETE /api/documents/:id');
+//   console.log('================================');
+
+//   try {
+//     const userEmail = req.user.email;
+//     const documentId = req.params.id;
+
+//     await documentRepository.deleteDocument(userEmail, documentId);
+
+//     console.log('✅ Document deleted successfully');
+//     console.log('================================\n');
+
+//     res.json({
+//       success: true,
+//       message: 'Document deleted successfully'
+//     });
+
+//   } catch (error) {
+//     console.error('❌ Delete error:', error.message);
+    
+//     const status = error.message === 'Document not found' ? 404 : 500;
+//     res.status(status).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// };
+
+// /**
+//  * Get document status (for compatibility)
+//  * GET /api/documents/:id/status
+//  */
+// exports.getDocumentStatus = async (req, res) => {
+//   try {
+//     const userEmail = req.user.email;
+//     const documentId = req.params.id;
+
+//     const document = await documentRepository.getDocument(userEmail, documentId);
+
+//     res.json({
+//       success: true,
+//       status: document.status === 'active' ? 'completed' : document.status,
+//       document: {
+//         id: document.id,
+//         fileName: document.fileName,
+//         uploadedAt: document.uploadedAt
+//       }
+//     });
+
+//   } catch (error) {
+//     res.status(404).json({
+//       success: false,
+//       error: 'Document not found'
+//     });
+//   }
+// };
+
+// /**
+//  * Get document file URL (for viewing/downloading)
+//  * GET /api/documents/:id/file
+//  */
+// exports.getDocumentFile = async (req, res) => {
+//   try {
+//     const userEmail = req.user.email;
+//     const documentId = req.params.id;
+
+//     const document = await documentRepository.getDocument(userEmail, documentId);
+
+//     // Redirect to GCS signed URL
+//     res.redirect(document.gcsSignedUrl);
+
+//   } catch (error) {
+//     res.status(404).json({
+//       success: false,
+//       error: 'Document not found'
+//     });
+//   }
+// };
+// // Add this to your documentController.js
+
+
+// /**
+//  * Download document as blob (for RAG upload)
+//  */
+// exports.downloadDocumentBlob = async (req, res) => {
+//   console.log('\n================================');
+//   console.log('📥 downloadDocumentBlob');
+//   console.log('================================');
+//   console.log('User:', req.user.email);
+//   console.log('Document ID:', req.params.id);
+
+//   try {
+//     const userEmail = req.user.email;
+//     const documentId = req.params.id;
+    
+//     // Get document metadata from Firestore
+//     const document = await documentRepository.getDocument(userEmail, documentId);
+    
+//     if (!document) {
+//       console.error('❌ Document not found');
+//       return res.status(404).json({ message: 'Document not found' });
+//     }
+
+//     console.log('📄 Document found:', document.fileName);
+//     console.log('📁 GCS Path:', document.gcsPath);
+    
+//     // Download file from GCS
+//     const file = bucket.file(document.gcsPath);
+    
+//     // Check if file exists
+//     const [exists] = await file.exists();
+//     if (!exists) {
+//       console.error('❌ File not found in GCS');
+//       return res.status(404).json({ message: 'File not found in storage' });
+//     }
+    
+//     console.log('⬇️  Downloading from GCS...');
+//     const [fileBuffer] = await file.download();
+    
+//     console.log('✅ File downloaded:', fileBuffer.length, 'bytes');
+    
+//     // Set appropriate headers
+//     res.set({
+//       'Content-Type': document.mimeType,
+//       'Content-Length': fileBuffer.length,
+//       'Content-Disposition': `inline; filename="${document.fileName}"`,
+//       'Access-Control-Allow-Origin': '*', // Allow CORS
+//       'Cache-Control': 'no-cache'
+//     });
+    
+//     // Send the file buffer
+//     res.send(fileBuffer);
+    
+//     console.log('✅ Blob sent successfully');
+//     console.log('================================\n');
+    
+//   } catch (error) {
+//     console.error('\n================================');
+//     console.error('❌ Error in downloadDocumentBlob');
+//     console.error('Error:', error.message);
+//     console.error('Stack:', error.stack);
+//     console.error('================================\n');
+    
+//     res.status(500).json({ 
+//       message: 'Failed to download document',
+//       error: error.message 
+//     });
+//   }
+// };
+const { bucket } = require('../config/firebase');
+const documentRepository = require('../repositories/documentRepository');
+
+console.log('================================');
+console.log('📄 documentController.js LOADING');
+console.log('================================');
+console.log('Bucket available:', !!bucket);
+console.log('================================\n');
+
+/**
+ * List all documents for authenticated user
+ */
+exports.listDocuments = async (req, res) => {
+  console.log('\n================================');
+  console.log('📋 listDocuments');
+  console.log('================================');
+  console.log('User:', req.user.email);
+
+  try {
+    const documents = await documentRepository.listUserDocuments(req.user.email);
+    
+    console.log(`✅ Returning ${documents.length} documents`);
+    console.log('================================\n');
+    
+    res.json({
+      success: true,
+      documents
+    });
+  } catch (error) {
+    console.error('❌ Error listing documents:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to list documents',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Upload a new document
+ */
+exports.uploadDocument = async (req, res) => {
+  console.log('\n================================');
+  console.log('📤 uploadDocument');
+  console.log('================================');
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const metadata = {
+      version: req.body.version || 'N/A',
+      notes: req.body.notes || '',
+      department: req.body.department || '',
+      documentType: req.body.documentType || ''
+    };
+
+    const document = await documentRepository.uploadDocument(
+      req.user.email,
+      req.file,
+      metadata
+    );
+
+    console.log('✅ Document uploaded successfully');
+    console.log('================================\n');
+
+    res.json({
+      success: true,
+      message: 'Document uploaded successfully',
+      document
+    });
+  } catch (error) {
+    console.error('❌ Error uploading document:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload document',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get a single document
+ */
 exports.getDocument = async (req, res) => {
   console.log('\n================================');
   console.log('📄 getDocument');
@@ -527,116 +802,32 @@ exports.getDocument = async (req, res) => {
   console.log('Document ID:', req.params.id);
 
   try {
-    const userEmail = req.user.email;
-    const documentId = req.params.id;
-    
-    const document = await documentRepository.getDocument(userEmail, documentId);
+    const document = await documentRepository.getDocument(
+      req.user.email,
+      req.params.id
+    );
 
     if (!document) {
       console.error('❌ Document not found');
-      return res.status(404).json({ message: 'Document not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
     }
 
     console.log('✅ Document found:', document.fileName);
     console.log('================================\n');
 
-    // ✅ Return document directly in consistent format
     res.json(document);
-    
   } catch (error) {
     console.error('❌ Error getting document:', error);
-    res.status(500).json({ 
-      message: 'Failed to get document',
-      error: error.message 
-    });
-  }
-};
-/**
- * Delete document
- * DELETE /api/documents/:id
- */
-exports.deleteDocument = async (req, res) => {
-  console.log('\n================================');
-  console.log('🗑️  DELETE /api/documents/:id');
-  console.log('================================');
-
-  try {
-    const userEmail = req.user.email;
-    const documentId = req.params.id;
-
-    await documentRepository.deleteDocument(userEmail, documentId);
-
-    console.log('✅ Document deleted successfully');
-    console.log('================================\n');
-
-    res.json({
-      success: true,
-      message: 'Document deleted successfully'
-    });
-
-  } catch (error) {
-    console.error('❌ Delete error:', error.message);
-    
-    const status = error.message === 'Document not found' ? 404 : 500;
-    res.status(status).json({
+    res.status(500).json({
       success: false,
+      message: 'Failed to get document',
       error: error.message
     });
   }
 };
-
-/**
- * Get document status (for compatibility)
- * GET /api/documents/:id/status
- */
-exports.getDocumentStatus = async (req, res) => {
-  try {
-    const userEmail = req.user.email;
-    const documentId = req.params.id;
-
-    const document = await documentRepository.getDocument(userEmail, documentId);
-
-    res.json({
-      success: true,
-      status: document.status === 'active' ? 'completed' : document.status,
-      document: {
-        id: document.id,
-        fileName: document.fileName,
-        uploadedAt: document.uploadedAt
-      }
-    });
-
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      error: 'Document not found'
-    });
-  }
-};
-
-/**
- * Get document file URL (for viewing/downloading)
- * GET /api/documents/:id/file
- */
-exports.getDocumentFile = async (req, res) => {
-  try {
-    const userEmail = req.user.email;
-    const documentId = req.params.id;
-
-    const document = await documentRepository.getDocument(userEmail, documentId);
-
-    // Redirect to GCS signed URL
-    res.redirect(document.gcsSignedUrl);
-
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      error: 'Document not found'
-    });
-  }
-};
-// Add this to your documentController.js
-
 
 /**
  * Download document as blob (for RAG upload)
@@ -653,37 +844,60 @@ exports.downloadDocumentBlob = async (req, res) => {
     const documentId = req.params.id;
     
     // Get document metadata from Firestore
-    const document = await documentRepository.getDocument(userEmail, documentId);
+    let document = await documentRepository.getDocument(userEmail, documentId);
+    
+    // Handle if document is wrapped in success object
+    if (document && document.document) {
+      document = document.document;
+    }
     
     if (!document) {
-      console.error('❌ Document not found');
+      console.error('❌ Document not found in Firestore');
       return res.status(404).json({ message: 'Document not found' });
     }
 
     console.log('📄 Document found:', document.fileName);
     console.log('📁 GCS Path:', document.gcsPath);
+    console.log('🪣 Bucket:', bucket.name);
     
-    // Download file from GCS
-    const file = bucket.file(document.gcsPath);
-    
-    // Check if file exists
-    const [exists] = await file.exists();
-    if (!exists) {
-      console.error('❌ File not found in GCS');
-      return res.status(404).json({ message: 'File not found in storage' });
+    // Validate gcsPath exists
+    if (!document.gcsPath) {
+      console.error('❌ No gcsPath in document');
+      return res.status(500).json({ message: 'Document missing GCS path' });
     }
     
+    // Get file reference from GCS
+    const file = bucket.file(document.gcsPath);
+    
+    // Check if file exists in GCS
+    console.log('🔍 Checking if file exists in GCS...');
+    const [exists] = await file.exists();
+    
+    if (!exists) {
+      console.error('❌ File does not exist in GCS');
+      console.error('Expected path:', document.gcsPath);
+      
+      return res.status(404).json({ 
+        message: 'File not found in storage',
+        gcsPath: document.gcsPath,
+        bucketName: bucket.name
+      });
+    }
+    
+    console.log('✅ File exists in GCS');
     console.log('⬇️  Downloading from GCS...');
+    
+    // Download file from GCS
     const [fileBuffer] = await file.download();
     
     console.log('✅ File downloaded:', fileBuffer.length, 'bytes');
     
     // Set appropriate headers
     res.set({
-      'Content-Type': document.mimeType,
+      'Content-Type': document.mimeType || 'application/octet-stream',
       'Content-Length': fileBuffer.length,
       'Content-Disposition': `inline; filename="${document.fileName}"`,
-      'Access-Control-Allow-Origin': '*', // Allow CORS
+      'Access-Control-Allow-Origin': '*',
       'Cache-Control': 'no-cache'
     });
     
@@ -702,7 +916,108 @@ exports.downloadDocumentBlob = async (req, res) => {
     
     res.status(500).json({ 
       message: 'Failed to download document',
-      error: error.message 
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get document status
+ */
+exports.getDocumentStatus = async (req, res) => {
+  console.log('\n================================');
+  console.log('📊 getDocumentStatus');
+  console.log('================================');
+
+  try {
+    const document = await documentRepository.getDocument(
+      req.user.email,
+      req.params.id
+    );
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      status: document.status,
+      uploadedAt: document.uploadedAt
+    });
+  } catch (error) {
+    console.error('❌ Error getting document status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get document status',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get document file (download/view)
+ */
+exports.getDocumentFile = async (req, res) => {
+  console.log('\n================================');
+  console.log('📥 getDocumentFile');
+  console.log('================================');
+
+  try {
+    const document = await documentRepository.getDocument(
+      req.user.email,
+      req.params.id
+    );
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
+    }
+
+    // Redirect to signed URL
+    res.redirect(document.gcsSignedUrl);
+  } catch (error) {
+    console.error('❌ Error getting document file:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get document file',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Delete a document
+ 
+ */
+exports.deleteDocument = async (req, res) => {
+  console.log('\n================================');
+  console.log('🗑️  deleteDocument');
+  console.log('================================');
+
+  try {
+    await documentRepository.deleteDocument(
+      req.user.email,
+      req.params.id
+    );
+
+    console.log('✅ Document deleted successfully');
+    console.log('================================\n');
+
+    res.json({
+      success: true,
+      message: 'Document deleted successfully'
+    });
+  } catch (error) {
+    console.error('❌ Error deleting document:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete document',
+      error: error.message
     });
   }
 };
