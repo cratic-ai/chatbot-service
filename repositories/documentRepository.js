@@ -1,3 +1,94 @@
+const { db, bucket } = require('../config/firebase');
+
+console.log('================================');
+console.log('📄 documentRepository.js LOADING');
+console.log('================================');
+console.log('Storage bucket available:', !!bucket);
+console.log('================================\n');
+
+/**
+ * Upload file to GCS and store link in Firestore
+ */
+exports.uploadDocument = async (userEmail, file, metadata) => {
+  console.log('\n================================');
+  console.log('📤 uploadDocument');
+  console.log('================================');
+  console.log('User:', userEmail);
+  console.log('File:', file.originalname);
+  console.log('Size:', file.size, 'bytes');
+
+  try {
+    const timestamp = Date.now();
+    const sanitizedEmail = userEmail.replace(/[@.]/g, '_');
+    const gcsFileName = `${sanitizedEmail}/${timestamp}_${file.originalname}`;
+    
+    console.log('📁 GCS path:', gcsFileName);
+
+    // Upload to GCS
+    const fileUpload = bucket.file(gcsFileName);
+    
+    await fileUpload.save(file.buffer, {
+      metadata: {
+        contentType: file.mimetype,
+        metadata: {
+          uploadedBy: userEmail,
+          originalName: file.originalname,
+          uploadTimestamp: timestamp.toString(),
+          ...metadata
+        }
+      }
+    });
+
+    console.log('✅ File uploaded to GCS');
+
+    // Generate signed URL (7 days validity)
+    const [signedUrl] = await fileUpload.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 7 * 24 * 60 * 60 * 1000
+    });
+
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${gcsFileName}`;
+
+    // Save to Firestore
+    const docData = {
+      fileName: file.originalname,
+      gcsPath: gcsFileName,
+      gcsSignedUrl: signedUrl,
+      gcsPublicUrl: publicUrl,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+      userEmail: userEmail,
+      version: metadata.version || 'N/A',
+      notes: metadata.notes || '',
+      department: metadata.department || '',
+      documentType: metadata.documentType || '',
+      uploadedAt: new Date().toISOString(),
+      status: 'active'
+    };
+
+    const docRef = await db.collection('users')
+      .doc(userEmail)
+      .collection('documents')
+      .add(docData);
+
+    console.log('✅ Document saved to Firestore');
+    console.log('Document ID:', docRef.id);
+    console.log('================================\n');
+
+    return {
+      id: docRef.id,
+      ...docData
+    };
+
+  } catch (error) {
+    console.error('\n================================');
+    console.error('❌ Error in uploadDocument');
+    console.error('Error:', error.message);
+    console.error('================================\n');
+    throw error;
+  }
+};
+
 // const { supabase } = require('../config/supabase');
 
 // /**
@@ -228,96 +319,96 @@
 
 
 
-const { db, bucket } = require('../config/firebase');
+// const { db, bucket } = require('../config/firebase');
 
-console.log('================================');
-console.log('📄 documentRepository.js LOADING');
-console.log('================================');
-console.log('Storage bucket available:', !!bucket);
-console.log('================================\n');
+// console.log('================================');
+// console.log('📄 documentRepository.js LOADING');
+// console.log('================================');
+// console.log('Storage bucket available:', !!bucket);
+// console.log('================================\n');
 
-/**
- * Upload file to GCS and store link in Firestore
- */
-exports.uploadDocument = async (userEmail, file, metadata) => {
-  console.log('\n================================');
-  console.log('📤 uploadDocument');
-  console.log('================================');
-  console.log('User:', userEmail);
-  console.log('File:', file.originalname);
-  console.log('Size:', file.size, 'bytes');
+// /**
+//  * Upload file to GCS and store link in Firestore
+//  */
+// exports.uploadDocument = async (userEmail, file, metadata) => {
+//   console.log('\n================================');
+//   console.log('📤 uploadDocument');
+//   console.log('================================');
+//   console.log('User:', userEmail);
+//   console.log('File:', file.originalname);
+//   console.log('Size:', file.size, 'bytes');
 
-  try {
-    const timestamp = Date.now();
-    const sanitizedEmail = userEmail.replace(/[@.]/g, '_');
-    const gcsFileName = `${sanitizedEmail}/${timestamp}_${file.originalname}`;
+//   try {
+//     const timestamp = Date.now();
+//     const sanitizedEmail = userEmail.replace(/[@.]/g, '_');
+//     const gcsFileName = `${sanitizedEmail}/${timestamp}_${file.originalname}`;
     
-    console.log('📁 GCS path:', gcsFileName);
+//     console.log('📁 GCS path:', gcsFileName);
 
-    // Upload to GCS
-    const fileUpload = bucket.file(gcsFileName);
+//     // Upload to GCS
+//     const fileUpload = bucket.file(gcsFileName);
     
-    await fileUpload.save(file.buffer, {
-      metadata: {
-        contentType: file.mimetype,
-        metadata: {
-          uploadedBy: userEmail,
-          originalName: file.originalname,
-          uploadTimestamp: timestamp.toString(),
-          ...metadata
-        }
-      }
-    });
+//     await fileUpload.save(file.buffer, {
+//       metadata: {
+//         contentType: file.mimetype,
+//         metadata: {
+//           uploadedBy: userEmail,
+//           originalName: file.originalname,
+//           uploadTimestamp: timestamp.toString(),
+//           ...metadata
+//         }
+//       }
+//     });
 
-    console.log('✅ File uploaded to GCS');
+//     console.log('✅ File uploaded to GCS');
 
-    // Generate signed URL (7 days validity)
-    const [signedUrl] = await fileUpload.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000
-    });
+//     // Generate signed URL (7 days validity)
+//     const [signedUrl] = await fileUpload.getSignedUrl({
+//       action: 'read',
+//       expires: Date.now() + 7 * 24 * 60 * 60 * 1000
+//     });
 
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${gcsFileName}`;
+//     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${gcsFileName}`;
 
-    // Save to Firestore
-    const docData = {
-      fileName: file.originalname,
-      gcsPath: gcsFileName,
-      gcsSignedUrl: signedUrl,
-      gcsPublicUrl: publicUrl,
-      mimeType: file.mimetype,
-      fileSize: file.size,
-      userEmail: userEmail,
-      version: metadata.version || 'N/A',
-      notes: metadata.notes || '',
-      department: metadata.department || '',
-      documentType: metadata.documentType || '',
-      uploadedAt: new Date().toISOString(),
-      status: 'active'
-    };
+//     // Save to Firestore
+//     const docData = {
+//       fileName: file.originalname,
+//       gcsPath: gcsFileName,
+//       gcsSignedUrl: signedUrl,
+//       gcsPublicUrl: publicUrl,
+//       mimeType: file.mimetype,
+//       fileSize: file.size,
+//       userEmail: userEmail,
+//       version: metadata.version || 'N/A',
+//       notes: metadata.notes || '',
+//       department: metadata.department || '',
+//       documentType: metadata.documentType || '',
+//       uploadedAt: new Date().toISOString(),
+//       status: 'active'
+//     };
 
-    const docRef = await db.collection('users')
-      .doc(userEmail)
-      .collection('documents')
-      .add(docData);
+//     const docRef = await db.collection('users')
+//       .doc(userEmail)
+//       .collection('documents')
+//       .add(docData);
 
-    console.log('✅ Document saved to Firestore');
-    console.log('Document ID:', docRef.id);
-    console.log('================================\n');
+//     console.log('✅ Document saved to Firestore');
+//     console.log('Document ID:', docRef.id);
+//     console.log('================================\n');
 
-    return {
-      id: docRef.id,
-      ...docData
-    };
+//     return {
+//       id: docRef.id,
+//       ...docData
+//     };
 
-  } catch (error) {
-    console.error('\n================================');
-    console.error('❌ Error in uploadDocument');
-    console.error('Error:', error.message);
-    console.error('================================\n');
-    throw error;
-  }
-};
+//   } catch (error) {
+//     console.error('\n================================');
+//     console.error('❌ Error in uploadDocument');
+//     console.error('Error:', error.message);
+//     console.error('================================\n');
+//     throw error;
+//   }
+// };
 
 /**
  * List all documents for user
@@ -361,172 +452,172 @@ exports.uploadDocument = async (userEmail, file, metadata) => {
 /**
  * List all active documents for a user
  */
-exports.listUserDocuments = async (userEmail) => {  // ← ADD 'async' HERE!
-  console.log('\n================================');
-  console.log('📋 listUserDocuments');
-  console.log('================================');
-  console.log('User:', userEmail);
+// exports.listUserDocuments = async (userEmail) => {  // ← ADD 'async' HERE!
+//   console.log('\n================================');
+//   console.log('📋 listUserDocuments');
+//   console.log('================================');
+//   console.log('User:', userEmail);
   
-  try {
-    // Query without orderBy to avoid index requirement
-    const snapshot = await db.collection('users')
-      .doc(userEmail)
-      .collection('documents')
-      .where('status', '==', 'active')
-      .get();
+//   try {
+//     // Query without orderBy to avoid index requirement
+//     const snapshot = await db.collection('users')
+//       .doc(userEmail)
+//       .collection('documents')
+//       .where('status', '==', 'active')
+//       .get();
     
-    const documents = [];
+//     const documents = [];
     
-    // Process each document with for...of loop
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
+//     // Process each document with for...of loop
+//     for (const doc of snapshot.docs) {
+//       const data = doc.data();
       
-      try {
-        // Generate fresh signed URL (7-day validity)
-        const file = bucket.file(data.gcsPath);
-        const [signedUrl] = await file.getSignedUrl({
-          action: 'read',
-          expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
-        });
+//       try {
+//         // Generate fresh signed URL (7-day validity)
+//         const file = bucket.file(data.gcsPath);
+//         const [signedUrl] = await file.getSignedUrl({
+//           action: 'read',
+//           expires: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+//         });
         
-        documents.push({
-          id: doc.id,
-          fileName: data.fileName,
-          gcsPath: data.gcsPath,
-          gcsSignedUrl: signedUrl,
-          gcsPublicUrl: data.gcsPublicUrl || null,
-          mimeType: data.mimeType,
-          fileSize: data.fileSize,
-          version: data.version,
-          notes: data.notes,
-          department: data.department,
-          documentType: data.documentType,
-          uploadedAt: data.uploadedAt,
-          status: data.status
-        });
-      } catch (urlError) {
-        console.error(`⚠️ Error generating signed URL for ${data.fileName}:`, urlError.message);
-        // Skip this document if URL generation fails
-      }
-    }
+//         documents.push({
+//           id: doc.id,
+//           fileName: data.fileName,
+//           gcsPath: data.gcsPath,
+//           gcsSignedUrl: signedUrl,
+//           gcsPublicUrl: data.gcsPublicUrl || null,
+//           mimeType: data.mimeType,
+//           fileSize: data.fileSize,
+//           version: data.version,
+//           notes: data.notes,
+//           department: data.department,
+//           documentType: data.documentType,
+//           uploadedAt: data.uploadedAt,
+//           status: data.status
+//         });
+//       } catch (urlError) {
+//         console.error(`⚠️ Error generating signed URL for ${data.fileName}:`, urlError.message);
+//         // Skip this document if URL generation fails
+//       }
+//     }
     
-    // Sort in JavaScript (newest first)
-    documents.sort((a, b) => {
-      const dateA = new Date(a.uploadedAt || 0);
-      const dateB = new Date(b.uploadedAt || 0);
-      return dateB - dateA;
-    });
+//     // Sort in JavaScript (newest first)
+//     documents.sort((a, b) => {
+//       const dateA = new Date(a.uploadedAt || 0);
+//       const dateB = new Date(b.uploadedAt || 0);
+//       return dateB - dateA;
+//     });
     
-    console.log(`✅ Found ${documents.length} documents`);
-    console.log('================================\n');
+//     console.log(`✅ Found ${documents.length} documents`);
+//     console.log('================================\n');
     
-    return documents;
+//     return documents;
     
-  } catch (error) {
-    console.error('❌ Error listing documents:', error);
-    console.error('Stack:', error.stack);
-    throw error;
-  }
-};
-/**
- * Get single document
- */
-exports.getDocument = async (userEmail, documentId) => {
-  console.log('\n================================');
-  console.log('📄 getDocument');
-  console.log('================================');
+//   } catch (error) {
+//     console.error('❌ Error listing documents:', error);
+//     console.error('Stack:', error.stack);
+//     throw error;
+//   }
+// };
+// /**
+//  * Get single document
+//  */
+// exports.getDocument = async (userEmail, documentId) => {
+//   console.log('\n================================');
+//   console.log('📄 getDocument');
+//   console.log('================================');
 
-  try {
-    const doc = await db.collection('users')
-      .doc(userEmail)
-      .collection('documents')
-      .doc(documentId)
-      .get();
+//   try {
+//     const doc = await db.collection('users')
+//       .doc(userEmail)
+//       .collection('documents')
+//       .doc(documentId)
+//       .get();
 
-    if (!doc.exists) {
-      throw new Error('Document not found');
-    }
+//     if (!doc.exists) {
+//       throw new Error('Document not found');
+//     }
 
-    console.log('✅ Document found');
-    console.log('================================\n');
+//     console.log('✅ Document found');
+//     console.log('================================\n');
 
-    return {
-      id: doc.id,
-      ...doc.data()
-    };
-  } catch (error) {
-    console.error('❌ Error getting document:', error);
-    throw error;
-  }
-};
+//     return {
+//       id: doc.id,
+//       ...doc.data()
+//     };
+//   } catch (error) {
+//     console.error('❌ Error getting document:', error);
+//     throw error;
+//   }
+// };
 
-/**
- * Update document metadata
- */
-exports.updateDocument = async (userEmail, documentId, updates) => {
-  console.log('\n================================');
-  console.log('📝 updateDocument');
-  console.log('================================');
+// /**
+//  * Update document metadata
+//  */
+// exports.updateDocument = async (userEmail, documentId, updates) => {
+//   console.log('\n================================');
+//   console.log('📝 updateDocument');
+//   console.log('================================');
 
-  try {
-    await db.collection('users')
-      .doc(userEmail)
-      .collection('documents')
-      .doc(documentId)
-      .update({
-        ...updates,
-        updatedAt: new Date().toISOString()
-      });
+//   try {
+//     await db.collection('users')
+//       .doc(userEmail)
+//       .collection('documents')
+//       .doc(documentId)
+//       .update({
+//         ...updates,
+//         updatedAt: new Date().toISOString()
+//       });
 
-    console.log('✅ Document updated');
-    console.log('================================\n');
-  } catch (error) {
-    console.error('❌ Error updating document:', error);
-    throw error;
-  }
-};
+//     console.log('✅ Document updated');
+//     console.log('================================\n');
+//   } catch (error) {
+//     console.error('❌ Error updating document:', error);
+//     throw error;
+//   }
+// };
 
-/**
- * Delete document (soft delete)
- */
-exports.deleteDocument = async (userEmail, documentId) => {
-  console.log('\n================================');
-  console.log('🗑️  deleteDocument');
-  console.log('================================');
+// /**
+//  * Delete document (soft delete)
+//  */
+// exports.deleteDocument = async (userEmail, documentId) => {
+//   console.log('\n================================');
+//   console.log('🗑️  deleteDocument');
+//   console.log('================================');
 
-  try {
-    const docRef = db.collection('users')
-      .doc(userEmail)
-      .collection('documents')
-      .doc(documentId);
+//   try {
+//     const docRef = db.collection('users')
+//       .doc(userEmail)
+//       .collection('documents')
+//       .doc(documentId);
 
-    const doc = await docRef.get();
+//     const doc = await docRef.get();
     
-    if (!doc.exists) {
-      throw new Error('Document not found');
-    }
+//     if (!doc.exists) {
+//       throw new Error('Document not found');
+//     }
 
-    const docData = doc.data();
+//     const docData = doc.data();
 
-    // Delete from GCS
-    try {
-      await bucket.file(docData.gcsPath).delete();
-      console.log('✅ File deleted from GCS');
-    } catch (gcsError) {
-      console.warn('⚠️  Could not delete from GCS:', gcsError.message);
-    }
+//     // Delete from GCS
+//     try {
+//       await bucket.file(docData.gcsPath).delete();
+//       console.log('✅ File deleted from GCS');
+//     } catch (gcsError) {
+//       console.warn('⚠️  Could not delete from GCS:', gcsError.message);
+//     }
 
-    // Soft delete in Firestore
-    await docRef.update({
-      status: 'deleted',
-      deletedAt: new Date().toISOString()
-    });
+//     // Soft delete in Firestore
+//     await docRef.update({
+//       status: 'deleted',
+//       deletedAt: new Date().toISOString()
+//     });
 
-    console.log('✅ Document deleted');
-    console.log('================================\n');
+//     console.log('✅ Document deleted');
+//     console.log('================================\n');
 
-  } catch (error) {
-    console.error('❌ Error deleting document:', error);
-    throw error;
-  }
-};
+//   } catch (error) {
+//     console.error('❌ Error deleting document:', error);
+//     throw error;
+//   }
+// };
