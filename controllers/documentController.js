@@ -604,3 +604,74 @@ exports.getDocumentFile = async (req, res) => {
     });
   }
 };
+// Add this to your documentController.js
+
+
+/**
+ * Download document as blob (for RAG upload)
+ */
+exports.downloadDocumentBlob = async (req, res) => {
+  console.log('\n================================');
+  console.log('📥 downloadDocumentBlob');
+  console.log('================================');
+  console.log('User:', req.user.email);
+  console.log('Document ID:', req.params.id);
+
+  try {
+    const userEmail = req.user.email;
+    const documentId = req.params.id;
+    
+    // Get document metadata from Firestore
+    const document = await documentRepository.getDocument(userEmail, documentId);
+    
+    if (!document) {
+      console.error('❌ Document not found');
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    console.log('📄 Document found:', document.fileName);
+    console.log('📁 GCS Path:', document.gcsPath);
+    
+    // Download file from GCS
+    const file = bucket.file(document.gcsPath);
+    
+    // Check if file exists
+    const [exists] = await file.exists();
+    if (!exists) {
+      console.error('❌ File not found in GCS');
+      return res.status(404).json({ message: 'File not found in storage' });
+    }
+    
+    console.log('⬇️  Downloading from GCS...');
+    const [fileBuffer] = await file.download();
+    
+    console.log('✅ File downloaded:', fileBuffer.length, 'bytes');
+    
+    // Set appropriate headers
+    res.set({
+      'Content-Type': document.mimeType,
+      'Content-Length': fileBuffer.length,
+      'Content-Disposition': `inline; filename="${document.fileName}"`,
+      'Access-Control-Allow-Origin': '*', // Allow CORS
+      'Cache-Control': 'no-cache'
+    });
+    
+    // Send the file buffer
+    res.send(fileBuffer);
+    
+    console.log('✅ Blob sent successfully');
+    console.log('================================\n');
+    
+  } catch (error) {
+    console.error('\n================================');
+    console.error('❌ Error in downloadDocumentBlob');
+    console.error('Error:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('================================\n');
+    
+    res.status(500).json({ 
+      message: 'Failed to download document',
+      error: error.message 
+    });
+  }
+};
