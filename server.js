@@ -10,6 +10,8 @@ const subUserRoutes = require('./routes/subUserRoutes')
 const { apiLimiter } = require('./utils/ratelimiter');
 const socketManager = require('./socket/socketDocument');
 const uploadQueue = require('./queue/uploadQueue');
+const ragStoreRoutes = require('./routes/ragStoreRoutes');
+
 require('dotenv').config();
 
 if (uploadQueue) {
@@ -160,6 +162,8 @@ app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/documents', require('./routes/documentRoutes'));
 app.use('/api/gemini', require('./routes/chatgeminiRoutes'));
 app.use('/api/sub-users', subUserRoutes); 
+
+app.use('/api/ragstore', ragStoreRoutes);
 
 // ============================================
 // Error Handler Middleware
