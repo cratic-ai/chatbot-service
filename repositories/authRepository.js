@@ -600,24 +600,27 @@ exports.createUser = async (email, password) => {
   console.log('================================');
   console.log('Email:', email);
 
-    
   try {
+    // Extract email prefix and create ragStoreName
+    const emailPrefix = email.split('@')[0];
+    const ragStoreName = `${emailPrefix}sragstore`; // ← ADDED
+    
     const userData = {
       email,
       password,
       isAdmin: true,
+      ragStoreName: ragStoreName, // ← ADDED
       subUsers: [],
       subUserCount: 0,
       uploadedDocuments: [],
       documentCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-   
     };
     
     await db.collection('users').doc(email).set(userData);
     
-    console.log('✅ Admin user created');
+    console.log('✅ Admin user created with ragStoreName:', ragStoreName);
     console.log('================================\n');
     
     return {
@@ -637,6 +640,49 @@ exports.createUser = async (email, password) => {
     throw error;
   }
 };
+// exports.createUser = async (email, password) => {
+//   console.log('\n================================');
+//   console.log('📝 createUser (Admin)');
+//   console.log('================================');
+//   console.log('Email:', email);
+
+    
+//   try {
+//     const userData = {
+//       email,
+//       password,
+//       isAdmin: true,
+//       subUsers: [],
+//       subUserCount: 0,
+//       uploadedDocuments: [],
+//       documentCount: 0,
+//       createdAt: new Date().toISOString(),
+//       updatedAt: new Date().toISOString(),
+   
+//     };
+    
+//     await db.collection('users').doc(email).set(userData);
+    
+//     console.log('✅ Admin user created');
+//     console.log('================================\n');
+    
+//     return {
+//       id: email,
+//       ...userData
+//     };
+    
+//   } catch (error) {
+//     console.error('❌ Error in createUser:', error.message);
+    
+//     if (error.code === 6) {
+//       const customError = new Error('User already exists');
+//       customError.status = 400;
+//       throw customError;
+//     }
+    
+//     throw error;
+//   }
+// };
 
 /**
  * Update user's last login
