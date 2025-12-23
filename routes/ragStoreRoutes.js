@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const ragStoreController = require('../controllers/ragStoreController');
-const { authenticateToken } = require('../middleware/auth');
+
+const { isAuthenticated } = require('../middlewares/auth');
 
 console.log('================================');
 console.log('🛣️  ragStoreRoutes.js LOADING');
@@ -12,6 +13,6 @@ console.log('================================\n');
  * @desc    Get RAG store name for authenticated user
  * @access  Private (Admin & Sub-user)
  */
-router.get('/', authenticateToken, ragStoreController.getRagStore);
+router.get('/getname', isAuthenticated, ragStoreController.getRagStore);
 
 module.exports = router;
