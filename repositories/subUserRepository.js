@@ -17,24 +17,7 @@ exports.createSubUser = async (parentEmail, subUserData) => {
   try {
     const { email, password, name, status = 'active' } = subUserData;
     
-    // 1. Create sub-user in subUsers collection
-    const subUserDoc = {
-      email,
-      password, // Already hashed
-      name,
-      isAdmin: false,
-      parentUser: parentEmail,
-      status,
-      permissions: ['view', 'download'],
-      createdAt: new Date().toISOString(),
-      createdBy: parentEmail,
-      lastLogin: null
-    };
-    
-    await db.collection('subUsers').doc(email).set(subUserDoc);
-    console.log('✅ Sub-user created in subUsers collection');
-    
-    // 2. Add to parent's subUsers array
+    // Get parent user to inherit ragStoreName
     const parentRef = db.collection('users').doc(parentEmail);
     const parentDoc = await parentRef.get();
     
@@ -43,6 +26,26 @@ exports.createSubUser = async (parentEmail, subUserData) => {
     }
     
     const parentData = parentDoc.data();
+    
+    // 1. Create sub-user in subUsers collection
+    const subUserDoc = {
+      email,
+      password, // Already hashed
+      name,
+      isAdmin: false,
+      parentUser: parentEmail,
+      ragStoreName: parentData.ragStoreName, // ← INHERIT from parent
+      status,
+      permissions: ['view', 'download'],
+      createdAt: new Date().toISOString(),
+      createdBy: parentEmail,
+      lastLogin: null
+    };
+    
+    await db.collection('subUsers').doc(email).set(subUserDoc);
+    console.log('✅ Sub-user created with ragStoreName:', parentData.ragStoreName);
+    
+    // 2. Add to parent's subUsers array
     const currentSubUsers = parentData.subUsers || [];
     
     currentSubUsers.push({
@@ -71,6 +74,72 @@ exports.createSubUser = async (parentEmail, subUserData) => {
     throw error;
   }
 };
+
+
+// exports.createSubUser = async (parentEmail, subUserData) => {
+//   console.log('\n================================');
+//   console.log('📝 createSubUser');
+//   console.log('================================');
+//   console.log('Parent:', parentEmail);
+//   console.log('Sub-user email:', subUserData.email);
+  
+//   try {
+//     const { email, password, name, status = 'active' } = subUserData;
+    
+//     // 1. Create sub-user in subUsers collection
+//     const subUserDoc = {
+//       email,
+//       password, // Already hashed
+//       name,
+//       isAdmin: false,
+//       parentUser: parentEmail,
+//       status,
+//       permissions: ['view', 'download'],
+//       createdAt: new Date().toISOString(),
+//       createdBy: parentEmail,
+//       lastLogin: null
+//     };
+    
+//     await db.collection('subUsers').doc(email).set(subUserDoc);
+//     console.log('✅ Sub-user created in subUsers collection');
+    
+//     // 2. Add to parent's subUsers array
+//     const parentRef = db.collection('users').doc(parentEmail);
+//     const parentDoc = await parentRef.get();
+    
+//     if (!parentDoc.exists) {
+//       throw new Error('Parent user not found');
+//     }
+    
+//     const parentData = parentDoc.data();
+//     const currentSubUsers = parentData.subUsers || [];
+    
+//     currentSubUsers.push({
+//       email,
+//       name,
+//       createdAt: subUserDoc.createdAt,
+//       status
+//     });
+    
+//     await parentRef.update({
+//       subUsers: currentSubUsers,
+//       subUserCount: currentSubUsers.length,
+//       updatedAt: new Date().toISOString()
+//     });
+    
+//     console.log('✅ Added to parent\'s subUsers array');
+//     console.log('================================\n');
+    
+//     return {
+//       id: email,
+//       ...subUserDoc
+//     };
+    
+//   } catch (error) {
+//     console.error('❌ Error creating sub-user:', error.message);
+//     throw error;
+//   }
+// };
 
 /**
  * List all sub-users for a parent
