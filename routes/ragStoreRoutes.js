@@ -13,6 +13,6 @@ console.log('================================\n');
  * @desc    Get RAG store name for authenticated user
  * @access  Private (Admin & Sub-user)
  */
-router.get('/getname', isAuthenticated, ragStoreController.getRagStore);
+router.get('/getname', ragStoreController.getRagStore);
 
 module.exports = router;
