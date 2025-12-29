@@ -532,6 +532,237 @@
 //   }
 // };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const { db } = require('../config/firebase');
+
+// console.log('================================');
+// console.log('🔥 authRepository.js (Firestore) LOADING');
+// console.log('================================');
+// console.log('Firestore client available:', !!db);
+// console.log('================================\n');
+
+// /**
+//  * Find user by email - checks both admin users and sub-users
+//  */
+// exports.findUserByEmail = async (email) => {
+//   console.log('\n================================');
+//   console.log('🔍 findUserByEmail (Firestore)');
+//   console.log('================================');
+//   console.log('Email:', email);
+  
+//   try {
+//     // First, check in main users collection (Admin users)
+//     const adminUserDoc = await db.collection('users').doc(email).get();
+    
+//     if (adminUserDoc.exists) {
+//       const userData = adminUserDoc.data();
+//       console.log('✅ Admin user found');
+//       console.log('================================\n');
+      
+//       return {
+//         id: adminUserDoc.id,
+//         ...userData,
+//         isAdmin: true
+//       };
+//     }
+    
+//     // Check subUsers collection
+//     const subUserDoc = await db.collection('subUsers').doc(email).get();
+    
+//     if (subUserDoc.exists) {
+//       const userData = subUserDoc.data();
+//       console.log('✅ Sub-user found');
+//       console.log('Parent user:', userData.parentUser);
+//       console.log('================================\n');
+      
+//       return {
+//         id: subUserDoc.id,
+//         ...userData,
+//         isAdmin: false
+//       };
+//     }
+    
+//     console.log('❌ User not found');
+//     console.log('================================\n');
+//     return null;
+    
+//   } catch (error) {
+//     console.error('❌ Error in findUserByEmail:', error.message);
+//     throw error;
+//   }
+// };
+
+// /**
+//  * Create new admin user
+//  */
+// exports.createUser = async (email, password) => {
+//   console.log('\n================================');
+//   console.log('📝 createUser (Admin)');
+//   console.log('================================');
+//   console.log('Email:', email);
+
+//   try {
+//     // Extract email prefix and create ragStoreName
+//     const emailPrefix = email.split('@')[0];
+//     const ragStoreName = `${emailPrefix}sragstore`; // ← ADDED
+    
+//     const userData = {
+//       email,
+//       password,
+//       isAdmin: true,
+//       ragStoreName: ragStoreName, // ← ADDED
+//       subUsers: [],
+//       subUserCount: 0,
+//       uploadedDocuments: [],
+//       documentCount: 0,
+//       createdAt: new Date().toISOString(),
+//       updatedAt: new Date().toISOString(),
+//     };
+    
+//     await db.collection('users').doc(email).set(userData);
+    
+//     console.log('✅ Admin user created with ragStoreName:', ragStoreName);
+//     console.log('================================\n');
+    
+//     return {
+//       id: email,
+//       ...userData
+//     };
+    
+//   } catch (error) {
+//     console.error('❌ Error in createUser:', error.message);
+    
+//     if (error.code === 6) {
+//       const customError = new Error('User already exists');
+//       customError.status = 400;
+//       throw customError;
+//     }
+    
+//     throw error;
+//   }
+// };
+// // exports.createUser = async (email, password) => {
+// //   console.log('\n================================');
+// //   console.log('📝 createUser (Admin)');
+// //   console.log('================================');
+// //   console.log('Email:', email);
+
+    
+// //   try {
+// //     const userData = {
+// //       email,
+// //       password,
+// //       isAdmin: true,
+// //       subUsers: [],
+// //       subUserCount: 0,
+// //       uploadedDocuments: [],
+// //       documentCount: 0,
+// //       createdAt: new Date().toISOString(),
+// //       updatedAt: new Date().toISOString(),
+   
+// //     };
+    
+// //     await db.collection('users').doc(email).set(userData);
+    
+// //     console.log('✅ Admin user created');
+// //     console.log('================================\n');
+    
+// //     return {
+// //       id: email,
+// //       ...userData
+// //     };
+    
+// //   } catch (error) {
+// //     console.error('❌ Error in createUser:', error.message);
+    
+// //     if (error.code === 6) {
+// //       const customError = new Error('User already exists');
+// //       customError.status = 400;
+// //       throw customError;
+// //     }
+    
+// //     throw error;
+// //   }
+// // };
+
+// /**
+//  * Update user's last login
+//  */
+// exports.updateLastLogin = async (email, isAdmin) => {
+//   console.log('\n================================');
+//   console.log('🔄 updateLastLogin');
+//   console.log('================================');
+  
+//   try {
+//     const collection = isAdmin ? 'users' : 'subUsers';
+    
+//     await db.collection(collection).doc(email).update({
+//       lastLogin: new Date().toISOString(),
+//       updatedAt: new Date().toISOString()
+//     });
+    
+//     console.log('✅ Last login updated');
+//     console.log('================================\n');
+    
+//   } catch (error) {
+//     console.error('❌ Error updating last login:', error.message);
+//     // Don't throw - this is not critical
+//   }
+// };
+
+// /**
+//  * Get user statistics (for admin dashboard)
+//  */
+// exports.getUserStats = async (email) => {
+//   console.log('\n================================');
+//   console.log('📊 getUserStats');
+//   console.log('================================');
+  
+//   try {
+//     const userDoc = await db.collection('users').doc(email).get();
+    
+//     if (!userDoc.exists) {
+//       throw new Error('User not found');
+//     }
+    
+//     const userData = userDoc.data();
+    
+//     console.log('✅ Stats retrieved');
+//     console.log('================================\n');
+    
+//     return {
+//       subUserCount: userData.subUserCount || 0,
+//       documentCount: userData.documentCount || 0,
+//       activeSubUsers: userData.subUsers?.filter(u => u.status === 'active').length || 0
+//     };
+    
+//   } catch (error) {
+//     console.error('❌ Error getting stats:', error.message);
+//     throw error;
+//   }
+// };
+
+
+
+
+
+
+
+
 const { db } = require('../config/firebase');
 
 console.log('================================');
@@ -601,15 +832,16 @@ exports.createUser = async (email, password) => {
   console.log('Email:', email);
 
   try {
-    // Extract email prefix and create ragStoreName
+    // Extract email prefix and create display name
     const emailPrefix = email.split('@')[0];
-    const ragStoreName = `${emailPrefix}sragstore`; // ← ADDED
+    const ragStoreDisplayName = `${emailPrefix}sragstore`; // User-friendly name
     
     const userData = {
       email,
       password,
       isAdmin: true,
-      ragStoreName: ragStoreName, // ← ADDED
+      ragStoreDisplayName: ragStoreDisplayName,  // ← Display name (e.g., "johnsragstore")
+      ragStoreGeminiName: null,                   // ← Actual Gemini name (set later by frontend)
       subUsers: [],
       subUserCount: 0,
       uploadedDocuments: [],
@@ -620,7 +852,9 @@ exports.createUser = async (email, password) => {
     
     await db.collection('users').doc(email).set(userData);
     
-    console.log('✅ Admin user created with ragStoreName:', ragStoreName);
+    console.log('✅ Admin user created');
+    console.log('Display Name:', ragStoreDisplayName);
+    console.log('Gemini Name: (will be set on first use)');
     console.log('================================\n');
     
     return {
@@ -640,49 +874,6 @@ exports.createUser = async (email, password) => {
     throw error;
   }
 };
-// exports.createUser = async (email, password) => {
-//   console.log('\n================================');
-//   console.log('📝 createUser (Admin)');
-//   console.log('================================');
-//   console.log('Email:', email);
-
-    
-//   try {
-//     const userData = {
-//       email,
-//       password,
-//       isAdmin: true,
-//       subUsers: [],
-//       subUserCount: 0,
-//       uploadedDocuments: [],
-//       documentCount: 0,
-//       createdAt: new Date().toISOString(),
-//       updatedAt: new Date().toISOString(),
-   
-//     };
-    
-//     await db.collection('users').doc(email).set(userData);
-    
-//     console.log('✅ Admin user created');
-//     console.log('================================\n');
-    
-//     return {
-//       id: email,
-//       ...userData
-//     };
-    
-//   } catch (error) {
-//     console.error('❌ Error in createUser:', error.message);
-    
-//     if (error.code === 6) {
-//       const customError = new Error('User already exists');
-//       customError.status = 400;
-//       throw customError;
-//     }
-    
-//     throw error;
-//   }
-// };
 
 /**
  * Update user's last login
