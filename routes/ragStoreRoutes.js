@@ -15,5 +15,6 @@ console.log('================================\n');
  * @access  Private (Admin & Sub-user)
  */
 router.get('/getname',authenticate, ragStoreController.getRagStore);
+router.post('/putname', authenticate, ragStoreController.saveRagStore);
 
 module.exports = router;
