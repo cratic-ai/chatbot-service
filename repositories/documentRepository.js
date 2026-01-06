@@ -361,16 +361,32 @@ exports.uploadDocument = async (userEmail, file, metadata) => {
 /**
  * List all active documents for a user
  */
-exports.listUserDocuments = async (userEmail) => {  // ← ADD 'async' HERE!
+/**
+ * List all active documents for a user (works for both admin and sub-users)
+ */
+exports.listUserDocuments = async (userEmail) => {
   console.log('\n================================');
   console.log('📋 listUserDocuments');
   console.log('================================');
   console.log('User:', userEmail);
   
   try {
-    // Query without orderBy to avoid index requirement
+    let ownerEmail = userEmail;
+    
+    // Check if this is a sub-user
+    const subUserDoc = await db.collection('subUsers').doc(userEmail).get();
+    
+    if (subUserDoc.exists) {
+      // This is a sub-user, get parent's email
+      const subUserData = subUserDoc.data();
+      ownerEmail = subUserData.parentUser;
+      console.log('📌 Sub-user detected, fetching parent documents');
+      console.log('Parent email:', ownerEmail);
+    }
+    
+    // Query using the owner's email (either admin or parent)
     const snapshot = await db.collection('users')
-      .doc(userEmail)
+      .doc(ownerEmail)  // ← Now uses parent's email for sub-users
       .collection('documents')
       .where('status', '==', 'active')
       .get();
@@ -404,11 +420,8 @@ exports.listUserDocuments = async (userEmail) => {  // ← ADD 'async' HERE!
           uploadedAt: data.uploadedAt,
           status: data.status
         });
-
-     
       } catch (urlError) {
         console.error(`⚠️ Error generating signed URL for ${data.fileName}:`, urlError.message);
-        // Skip this document if URL generation fails
       }
     }
     
@@ -433,14 +446,28 @@ exports.listUserDocuments = async (userEmail) => {  // ← ADD 'async' HERE!
 /**
  * Get single document
  */
+/**
+ * Get single document (works for both admin and sub-users)
+ */
 exports.getDocument = async (userEmail, documentId) => {
   console.log('\n================================');
   console.log('📄 getDocument');
   console.log('================================');
 
   try {
+    let ownerEmail = userEmail;
+    
+    // Check if this is a sub-user
+    const subUserDoc = await db.collection('subUsers').doc(userEmail).get();
+    
+    if (subUserDoc.exists) {
+      const subUserData = subUserDoc.data();
+      ownerEmail = subUserData.parentUser;
+      console.log('📌 Sub-user detected, accessing parent document');
+    }
+
     const doc = await db.collection('users')
-      .doc(userEmail)
+      .doc(ownerEmail)
       .collection('documents')
       .doc(documentId)
       .get();
