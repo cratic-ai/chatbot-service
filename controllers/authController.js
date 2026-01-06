@@ -95,6 +95,8 @@ console.log('================================\n');
  * User login - handles both admin and sub-users
  * POST /api/auth/login
  */
+
+// controllers/authController.js
 exports.login = async (req, res) => {
   console.log('\n================================');
   console.log('🔑 POST /api/auth/login');
@@ -142,6 +144,7 @@ exports.login = async (req, res) => {
     
     // Generate JWT token
     const tokenPayload = {
+      userId: user.email,  // ✅ Add this for compatibility
       email: user.email,
       isAdmin: user.isAdmin
     };
@@ -160,12 +163,16 @@ exports.login = async (req, res) => {
     console.log('✅ Login successful');
     console.log('================================\n');
     
+    // ✅ Updated response structure
     res.json({
       success: true,
       message: 'Login successful',
       token: token,
+      email: user.email,  // ✅ Add this
+      userId: user.email, // ✅ Add this
       user: {
         email: user.email,
+        userId: user.email,  // ✅ Add this
         isAdmin: user.isAdmin,
         name: user.name || email.split('@')[0],
         parentUser: user.parentUser || null
@@ -183,79 +190,7 @@ exports.login = async (req, res) => {
   }
 };
 
-/**
- * User signup - creates admin user only
- * POST /api/auth/signup
- */
-exports.signup = async (req, res) => {
-  console.log('\n================================');
-  console.log('📝 POST /api/auth/signup');
-  console.log('================================');
-  
-  try {
-    const { email, password} = req.body;
-    
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email and password are required'
-      });
-    }
-    
-    console.log('Email:', email);
-    
-    // Check if user already exists
-    const existingUser = await authRepository.findUserByEmail(email);
-    
-    if (existingUser) {
-      console.log('❌ User already exists');
-      return res.status(400).json({
-        success: false,
-        error: 'User already exists'
-      });
-    }
-    
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Create admin user
-    const user = await authRepository.createUser(email, hashedPassword);
-    
-    // Generate token
-    const token = jwt.sign(
-      { email: user.email, isAdmin: true },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
-    );
-    
-    console.log('✅ Signup successful');
-    console.log('================================\n');
-    
-    res.status(201).json({
-      success: true,
-      message: 'Account created successfully',
-      token: token,
-      user: {
-        email: user.email,
-        isAdmin: true,
-      }
-    });
-    
-  } catch (error) {
-    console.error('❌ Signup error:', error.message);
-    
-    res.status(500).json({
-      success: false,
-      error: 'Signup failed',
-      message: error.message
-    });
-  }
-};
-
-/**
- * Get current user info
- * GET /api/auth/me
- */
+// ✅ Update getCurrentUser (for /verify endpoint)
 exports.getCurrentUser = async (req, res) => {
   console.log('\n================================');
   console.log('👤 GET /api/auth/me');
@@ -276,12 +211,15 @@ exports.getCurrentUser = async (req, res) => {
     console.log('✅ User info retrieved');
     console.log('================================\n');
     
+    // ✅ Updated response structure
     res.json({
       success: true,
+      email: user.email,  // ✅ Add this
+      userId: user.email, // ✅ Add this
       user: {
         email: user.email,
+        userId: user.email,  // ✅ Add this
         isAdmin: user.isAdmin,
-
         parentUser: user.parentUser || null,
         subUserCount: user.subUserCount || 0,
         documentCount: user.documentCount || 0
@@ -297,3 +235,5 @@ exports.getCurrentUser = async (req, res) => {
     });
   }
 };
+
+
