@@ -15,7 +15,7 @@ exports.createSubUser = async (parentEmail, subUserData) => {
   console.log('Sub-user email:', subUserData.email);
   
   try {
-    const { email, password, name, status = 'active' } = subUserData;
+    const { email, password, name, status = 'active', role } = subUserData;
     
     // Get parent user to inherit ragStoreName
     const parentRef = db.collection('users').doc(parentEmail);
@@ -36,6 +36,7 @@ exports.createSubUser = async (parentEmail, subUserData) => {
       parentUser: parentEmail,
       // ragStoreName: parentData.ragStoreName, // ← INHERIT from parent
       status,
+      role,
       permissions: ['view', 'download'],
       createdAt: new Date().toISOString(),
       createdBy: parentEmail,
@@ -201,6 +202,7 @@ exports.listSubUsers = async (parentEmail) => {
         id: doc.id,
         email: data.email,
         name: data.name,
+        role:data.role,
         status: data.status,
         createdAt: data.createdAt,
         lastLogin: data.lastLogin
