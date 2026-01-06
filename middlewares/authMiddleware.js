@@ -219,6 +219,28 @@ exports.isAdmin = (req, res, next) => {
   next();
 };
 
+
+// : Middleware for chatbot access (both admin and sub-users)
+exports.canAccessChatbot = (req, res, next) => {
+  console.log('\n================================');
+  console.log('💬 canAccessChatbot middleware');
+  console.log('================================');
+  
+  if (!req.user) {
+    console.log('❌ User not authenticated');
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required'
+    });
+  }
+  
+  console.log('✅ Chatbot access granted');
+  console.log('User:', req.user.email);
+  console.log('Is Admin:', req.user.isAdmin);
+  console.log('================================\n');
+  
+  next();
+};
 /**
  * Sub-user middleware
  * Ensures only sub-users can access the route
