@@ -34,7 +34,7 @@ exports.createSubUser = async (parentEmail, subUserData) => {
       name,
       isAdmin: false,
       parentUser: parentEmail,
-      ragStoreName: parentData.ragStoreName, // ← INHERIT from parent
+      // ragStoreName: parentData.ragStoreName, // ← INHERIT from parent
       status,
       permissions: ['view', 'download'],
       createdAt: new Date().toISOString(),
