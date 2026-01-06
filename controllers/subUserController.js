@@ -18,7 +18,7 @@ exports.createSubUser = async (req, res) => {
   
   try {
     const parentEmail = req.user.email; // From auth middleware
-    const { email, password, name, status = 'active' } = req.body;
+    const { email, password, name, status = 'active',role } = req.body;
     
     // Validate required fields
     if (!email || !password || !name) {
@@ -47,7 +47,8 @@ exports.createSubUser = async (req, res) => {
       email,
       password: hashedPassword,
       name,
-      status
+      status,
+      role,
     });
     
     console.log('✅ Sub-user created successfully');
@@ -60,6 +61,7 @@ exports.createSubUser = async (req, res) => {
         id: subUser.id,
         email: subUser.email,
         name: subUser.name,
+       role:subUser.role,
         status: subUser.status,
         createdAt: subUser.createdAt
       },
@@ -154,7 +156,8 @@ exports.getSubUser = async (req, res) => {
         name: subUser.name,
         status: subUser.status,
         createdAt: subUser.createdAt,
-        lastLogin: subUser.lastLogin
+        lastLogin: subUser.lastLogin,
+        role:subUser.role
       }
     });
     
