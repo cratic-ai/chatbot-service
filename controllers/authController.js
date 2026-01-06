@@ -190,6 +190,76 @@ exports.login = async (req, res) => {
   }
 };
 
+
+/**
+ * User signup - creates admin user only
+ * POST /api/auth/signup
+ */
+exports.signup = async (req, res) => {
+  console.log('\n================================');
+  console.log('📝 POST /api/auth/signup');
+  console.log('================================');
+  
+  try {
+    const { email, password} = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and password are required'
+      });
+    }
+    
+    console.log('Email:', email);
+    
+    // Check if user already exists
+    const existingUser = await authRepository.findUserByEmail(email);
+    
+    if (existingUser) {
+      console.log('❌ User already exists');
+      return res.status(400).json({
+        success: false,
+        error: 'User already exists'
+      });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create admin user
+    const user = await authRepository.createUser(email, hashedPassword);
+    
+    // Generate token
+    const token = jwt.sign(
+      { email: user.email, isAdmin: true },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+    
+    console.log('✅ Signup successful');
+    console.log('================================\n');
+    
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully',
+      token: token,
+      user: {
+        email: user.email,
+        isAdmin: true,
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Signup error:', error.message);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Signup failed',
+      message: error.message
+    });
+  }
+};
+
 // ✅ Update getCurrentUser (for /verify endpoint)
 exports.getCurrentUser = async (req, res) => {
   console.log('\n================================');
